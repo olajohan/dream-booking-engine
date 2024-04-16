@@ -5,6 +5,8 @@ import Root from './routes/root'
 import Rooms from './routes/rooms'
 import Room from './routes/room';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { appTheme } from './theme';
 
 
 const root = ReactDOM.createRoot(
@@ -31,7 +33,10 @@ const router = createBrowserRouter([
 
 root.render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <ThemeProvider theme={appTheme}>
+    <CssBaseline enableColorScheme />
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </StrictMode>
 );
 

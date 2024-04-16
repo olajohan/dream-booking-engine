@@ -6,59 +6,142 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from 'dayjs';
 import { DateRange } from '@mui/x-date-pickers-pro';
 import utc from 'dayjs/plugin/utc';
+import updateLocale from 'dayjs/plugin/updateLocale';
 import { ServiceAvailability } from '../../api/ServiceAvailability.interface';
 import { getAccommodationServiceAvailability } from '../../api';
 import calendarReducer from './calendarReducer';
-dayjs.extend(utc);
+import CircularProgress from '@mui/material/CircularProgress';
+import {
+    DateRangePickerDay as MuiDateRangePickerDay,
+    DateRangePickerDayProps,
+} from '@mui/x-date-pickers-pro/DateRangePickerDay';
+import { styled } from '@mui/material/styles';
 
+dayjs.extend(utc);
+dayjs.extend(updateLocale)
+dayjs.updateLocale('en', {
+    weekStart: 1,
+    
+})
 
 export interface ICalendarProps {
     setSelectedDateRange: (dateRange: DateRange<Dayjs>) => void
 }
+
+const DateRangePickerDay = styled(MuiDateRangePickerDay)(
+    ({
+        theme,
+        isHighlighting,
+        isStartOfHighlighting,
+        isEndOfHighlighting,
+        outsideCurrentMonth,
+        isFirstVisibleCell,
+        isLastVisibleCell,
+        isStartOfPreviewing,
+        isPreviewing,
+        selected,
+        disabled
+    }) => ({
+
+        ...(disabled &&
+            !isStartOfPreviewing &&
+            !isPreviewing && {
+            background: 'rgba(255, 0, 0, 0.2)'
+        }),
+
+        ...(isFirstVisibleCell && {
+            borderTopLeftRadius: 0,
+            borderBottomLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderBottomRightRadius: 0
+        }),
+
+        ...(isLastVisibleCell && {
+            borderTopLeftRadius: 0,
+            borderBottomLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderBottomRightRadius: 0
+        }),
+
+        ...(!outsideCurrentMonth &&
+            isHighlighting && {
+            borderRadius: 0,
+            backgroundColor: theme.palette.primary.main,
+            color: theme.palette.common.white,
+            '&:hover, &:focus': {
+                backgroundColor: theme.palette.primary.dark,
+            },
+        }),
+        ...(isStartOfHighlighting && {
+            borderTopLeftRadius: '50%',
+            borderBottomLeftRadius: '50%',
+        }),
+        ...(isEndOfHighlighting && {
+            borderTopRightRadius: '50%',
+            borderBottomRightRadius: '50%',
+        }),
+    }),
+) as React.ComponentType<DateRangePickerDayProps<Dayjs>>;
+
+
 const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
 
     const [calendarState, dispatch] = useReducer(calendarReducer, initialCalendarState)
 
     // Fetch the fully booked dates for each selected month
     useEffect(() => {
+        updateIsLoading(true)
         updateFullyBookedDates(calendarState.selectedMonth)
     }, [calendarState.selectedMonth])
 
-
     useEffect(() => {
         updateMaxDate(calendarState.selectedDateRange.arrival, calendarState.fullyBookedDates)
+        return () => { updateIsLoading(false) }
     }, [calendarState.fullyBookedDates, calendarState.selectedDateRange.arrival])
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale='en'>
             <StaticDateRangePicker
                 disablePast={true}
                 displayWeekNumber={true}
+                showDaysOutsideCurrentMonth={true}
                 loading={calendarState.isLoading}
-                maxDate={calendarState.maxDate? calendarState.maxDate : undefined}
+                maxDate={calendarState.maxDate ? calendarState.maxDate : undefined}
                 timezone='UTC'
-
                 disableAutoMonthSwitching={true}
                 onMonthChange={handleCalendarOnMonthChange}
                 onChange={handleCalendarOnChange}
+                rangePosition={getRangePosition()}
                 shouldDisableDate={handleCalendarShouldDisableDate}
+                renderLoading={() => <CircularProgress />}
                 slotProps={{
                     toolbar: { hidden: false },
                     actionBar: { actions: ['clear'] },
                 }}
+                slots={{
+                    day: DateRangePickerDay,
+                }}
                 sx={{
                     [`.${pickersLayoutClasses.contentWrapper}`]: {
                         alignItems: 'center',
-                    },
-
+                    }
                 }}
             />
         </LocalizationProvider>
     )
 
+    function getRangePosition(): 'start' | 'end' {
+        if (calendarState.selectedDateRange.arrival !== null &&
+            calendarState.selectedDateRange.departure === null) {
+            return 'end'
+        } else {
+            return 'start'
+        }
+    }
+
     async function updateFullyBookedDates(month: Dayjs) {
-        const endDate = month.endOf('month').startOf('date')
-        const startDate = month.startOf('month').startOf('date').isBefore(dayjs()) ? dayjs() : month.startOf('month').startOf('date')
+        const endDate = month.add(1, 'month').endOf('month').startOf('date')
+        const startDate = month.subtract(1, 'month').startOf('month').startOf('date')
         const serviceAvailability = await getAccommodationServiceAvailability(startDate, endDate)
         const newListOfFullyBookedDates = getFullyBookedDatesFromServiceAvailability(serviceAvailability)
         dispatch({
@@ -75,7 +158,7 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
             type: 'update_max_date',
             payload: {
                 ...calendarState,
-                maxDate: getNextFullyBookedDate(arrivalDate, fullyBookedDates) 
+                maxDate: getNextFullyBookedDate(arrivalDate, fullyBookedDates)
             }
         })
     }
@@ -91,14 +174,21 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
     }
 
     function handleCalendarOnChange(dateRange: DateRange<Dayjs>) {
-        
+
+        const arrivalDate = dateRange[0]
+        const departureDate = dateRange[1]
+
+        if (arrivalDate !== null && departureDate !== null) {
+            props.setSelectedDateRange(dateRange)
+        }
+
         dispatch({
             type: 'changed_selected_date_range',
             payload: {
                 ...calendarState,
                 selectedDateRange: {
-                    arrival: dateRange[0],
-                    departure: dateRange[1]
+                    arrival: arrivalDate,
+                    departure: departureDate
                 }
             }
         })
@@ -125,7 +215,6 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
             if (isBeforeArrivalDate) return true
             if (isDatePossibleDepartureDate) return false
         }
-
         return isDateFullyBooked || isStayOverDayInPackageTourSeason
 
     }
