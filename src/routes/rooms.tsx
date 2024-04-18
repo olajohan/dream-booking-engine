@@ -4,11 +4,13 @@ import Button from '@mui/material/Button'
 import RoomCard from '../components/RoomCard'
 import { rooms } from '../data/rooms.data'
 import Item from '../components/PaperItem'
-import Calendar from '../components/Calendar';
+import Calendar from '../components/Calendar/Calendar';
 import { DateRange } from '@mui/x-date-pickers-pro';
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
 import { getHotelAvailability } from '../api';
 import { AccommodationAvailability } from '../api/AccommodationAvailability.interface';
+import Checkbox from '@mui/material/Checkbox';
+
 
 function Rooms() {
 
@@ -30,9 +32,7 @@ function Rooms() {
 
   const CalendarOrSelectedDates = () => {
     if (selectedDateRange === undefined) {
-      return (
-        <Calendar setSelectedDateRange={setSelectedDateRangeHandler} />
-      )
+      return (<Calendar setSelectedDateRange={setSelectedDateRangeHandler} />)
     } else {
       return (
         <Grid item>

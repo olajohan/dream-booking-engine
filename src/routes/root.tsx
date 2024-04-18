@@ -21,7 +21,6 @@ function Root() {
 
     return (
         <>
-
             <HotelContext.Provider value={hotelContext}>
                 <Container className='root-container' maxWidth={false} style={{ backgroundColor: "#b3b3b3", margin: 0 }}>
 

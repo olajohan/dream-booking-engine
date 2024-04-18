@@ -1,6 +1,5 @@
 import dayjs from 'dayjs'
 import { Dayjs } from 'dayjs'
-import { DateRange } from '@mui/x-date-pickers-pro';
 import utc from 'dayjs/plugin/utc';
 import { Hotel, OccupancyData } from './Hotel.interface'
 import { AccommodationAvailability } from './AccommodationAvailability.interface';
@@ -96,14 +95,14 @@ export function getHotelAvailability(
 export function getAccommodationServiceAvailability(
     startDate: Dayjs,
     endDate: Dayjs,
-    categoryIds: string[] = Object.values(mews.roomsMappedToIds[ENVIRONMENT])
+    selectedRoomTypes: { [roomType: string]: boolean }
 ): Promise<ServiceAvailability> {
 
     return getServiceAvailability(
         startDate, 
         endDate,
         mews.serviceIds.accommodation[ENVIRONMENT],
-        categoryIds 
+        selectedRoomTypes 
     )
 }
 
@@ -111,8 +110,23 @@ function getServiceAvailability(
     startDate: Dayjs,
     endDate: Dayjs,
     serviceId: string,
-    categoryIds: string[]
+    selectedRoomTypes: { [roomType: string]: boolean }
 ): Promise<ServiceAvailability> {
+
+    console.log(selectedRoomTypes)
+    const categoryIds = Object.entries(selectedRoomTypes).filter((entry, index) => {
+        return entry[1]
+    }).flatMap((entry, index) => {
+        const roomName = entry[0]
+        
+        switch(roomName) {
+            case ('skySuite'): return mews.roomsMappedToIds[ENVIRONMENT][roomName]
+            case ('seaCabin'): return mews.roomsMappedToIds[ENVIRONMENT][roomName]
+            case ('igloo360'): return mews.roomsMappedToIds[ENVIRONMENT][roomName]
+            case ('igloo180'): return [mews.roomsMappedToIds[ENVIRONMENT]['igloo1801'], mews.roomsMappedToIds[ENVIRONMENT]['igloo1802']]
+            default: break;
+        }
+    })
 
     return fetch(mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/services/getAvailability', {
         method: "POST",

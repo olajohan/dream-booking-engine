@@ -5,6 +5,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from 'dayjs';
 import { DateRange } from '@mui/x-date-pickers-pro';
+import { Grid } from '@mui/material'
 import utc from 'dayjs/plugin/utc';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import { ServiceAvailability } from '../../api/ServiceAvailability.interface';
@@ -16,12 +17,17 @@ import {
     DateRangePickerDayProps,
 } from '@mui/x-date-pickers-pro/DateRangePickerDay';
 import { styled } from '@mui/material/styles';
+import Checkbox from '@mui/material/Checkbox';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormControl from '@mui/material/FormControl';
+import FormLabel from '@mui/material/FormLabel';
 
 dayjs.extend(utc);
 dayjs.extend(updateLocale)
 dayjs.updateLocale('en', {
     weekStart: 1,
-    
+
 })
 
 export interface ICalendarProps {
@@ -46,7 +52,7 @@ const DateRangePickerDay = styled(MuiDateRangePickerDay)(
         ...(disabled &&
             !isStartOfPreviewing &&
             !isPreviewing && {
-            background: 'rgba(255, 0, 0, 0.2)'
+            background: 'rgba(255, 0, 0, 0.2)',
         }),
 
         ...(isFirstVisibleCell && {
@@ -91,8 +97,8 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
     // Fetch the fully booked dates for each selected month
     useEffect(() => {
         updateIsLoading(true)
-        updateFullyBookedDates(calendarState.selectedMonth)
-    }, [calendarState.selectedMonth])
+        updateFullyBookedDates(calendarState)
+    }, [calendarState.selectedMonth, calendarState.selectedRoomTypes])
 
     useEffect(() => {
         updateMaxDate(calendarState.selectedDateRange.arrival, calendarState.fullyBookedDates)
@@ -100,34 +106,69 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
     }, [calendarState.fullyBookedDates, calendarState.selectedDateRange.arrival])
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale='en'>
-            <StaticDateRangePicker
-                disablePast={true}
-                displayWeekNumber={true}
-                showDaysOutsideCurrentMonth={true}
-                loading={calendarState.isLoading}
-                maxDate={calendarState.maxDate ? calendarState.maxDate : undefined}
-                timezone='UTC'
-                disableAutoMonthSwitching={true}
-                onMonthChange={handleCalendarOnMonthChange}
-                onChange={handleCalendarOnChange}
-                rangePosition={getRangePosition()}
-                shouldDisableDate={handleCalendarShouldDisableDate}
-                renderLoading={() => <CircularProgress />}
-                slotProps={{
-                    toolbar: { hidden: false },
-                    actionBar: { actions: ['clear'] },
-                }}
-                slots={{
-                    day: DateRangePickerDay,
-                }}
-                sx={{
-                    [`.${pickersLayoutClasses.contentWrapper}`]: {
-                        alignItems: 'center',
-                    }
-                }}
-            />
-        </LocalizationProvider>
+        <>
+            <FormControl component="fieldset">
+                <FormLabel component="legend"><b>Accommodation type</b></FormLabel>
+                <br />
+                <FormGroup aria-label="accommodation" row>
+                    <FormControlLabel
+                        control={<Checkbox onChange={handleOnRoomCheckboxChange} defaultChecked value='skySuite' />}
+                        label="Sky Suite"
+                        labelPlacement="top"
+                    />
+                    <FormControlLabel
+                        control={<Checkbox onChange={handleOnRoomCheckboxChange} defaultChecked value="igloo180" />}
+                        label="Igloo 180º"
+                        labelPlacement="top"
+                    />
+                    <FormControlLabel
+                        control={<Checkbox onChange={handleOnRoomCheckboxChange} defaultChecked value="igloo360" />}
+                        label="Igloo 360º"
+                        labelPlacement="top"
+                    />
+                    <FormControlLabel
+                        control={<Checkbox onChange={handleOnRoomCheckboxChange} defaultChecked value="seaCabin" />}
+                        label="Cabin"
+                        labelPlacement="top"
+                    />
+                </FormGroup>
+            </FormControl>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale='en'>
+                <StaticDateRangePicker
+                    disablePast={true}
+                    displayWeekNumber={true}
+                    showDaysOutsideCurrentMonth={true}
+                    loading={calendarState.isLoading}
+                    maxDate={calendarState.maxDate ? calendarState.maxDate : undefined}
+                    timezone='UTC'
+                    disableHighlightToday={true}
+                    disableAutoMonthSwitching={true}
+                    onMonthChange={handleCalendarOnMonthChange}
+                    onChange={handleCalendarOnChange}
+                    rangePosition={getRangePosition()}
+                    shouldDisableDate={handleCalendarShouldDisableDate}
+                    renderLoading={() => <CircularProgress />}
+                    slotProps={{
+                        toolbar: { hidden: true },
+                        actionBar: { actions: ['clear'] },
+                    }}
+                    slots={{
+                        day: DateRangePickerDay,
+                    }}
+                    sx={{
+                        [`.${pickersLayoutClasses.contentWrapper}`]: {
+                            alignItems: 'center',
+                        }
+                    }}
+                />
+            </LocalizationProvider>
+
+            <Grid container>
+                <Grid item lg={12}>
+                    <h4>Description</h4>
+                </Grid>
+            </Grid>
+        </>
     )
 
     function getRangePosition(): 'start' | 'end' {
@@ -139,10 +180,11 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
         }
     }
 
-    async function updateFullyBookedDates(month: Dayjs) {
-        const endDate = month.add(1, 'month').endOf('month').startOf('date')
-        const startDate = month.subtract(1, 'month').startOf('month').startOf('date')
-        const serviceAvailability = await getAccommodationServiceAvailability(startDate, endDate)
+    async function updateFullyBookedDates(calendarState: CalendarState) {
+        const endDate = calendarState.selectedMonth.add(1, 'month').endOf('month').startOf('date')
+        const startDate = calendarState.selectedMonth.subtract(1, 'month').startOf('month').startOf('date')
+        const serviceAvailability = await getAccommodationServiceAvailability(startDate, endDate, calendarState.selectedRoomTypes)
+        console.log(serviceAvailability)
         const newListOfFullyBookedDates = getFullyBookedDatesFromServiceAvailability(serviceAvailability)
         dispatch({
             type: 'update_fully_booked_dates',
@@ -169,6 +211,19 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
             payload: {
                 ...calendarState,
                 isLoading: isLoading
+            }
+        })
+    }
+
+    function handleOnRoomCheckboxChange(event: React.ChangeEvent<HTMLInputElement>, checked: boolean) {
+        dispatch({
+            type: 'update_room_checkbox',
+            payload: {
+                ...calendarState,
+                selectedRoomTypes: {
+                    ...calendarState.selectedRoomTypes,
+                    [event.target.value]: checked
+                }
             }
         })
     }
@@ -291,7 +346,10 @@ export interface CalendarState {
         arrival: Dayjs | null,
         departure: Dayjs | null
     },
-    maxDate: Dayjs | null
+    maxDate: Dayjs | null,
+    selectedRoomTypes: {
+        [roomType: string]: boolean
+    }
 }
 
 const initialCalendarState: CalendarState = {
@@ -302,5 +360,11 @@ const initialCalendarState: CalendarState = {
         arrival: null,
         departure: null
     },
-    maxDate: null
+    maxDate: null,
+    selectedRoomTypes: {
+        skySuite: true,
+        igloo180: true,
+        igloo360: true,
+        seaCabin: true
+    }
 }

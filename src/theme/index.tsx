@@ -5,5 +5,6 @@ export const appTheme = createTheme({
   palette: {
     primary: blue,
     secondary: pink,
-  },
+    
+  }
 });
