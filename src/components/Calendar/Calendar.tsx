@@ -1,16 +1,14 @@
-import { useReducer, useEffect, useState } from 'react'
+import { useContext, useEffect } from 'react'
 import { StaticDateRangePicker } from '@mui/x-date-pickers-pro/StaticDateRangePicker';
 import { pickersLayoutClasses } from '@mui/x-date-pickers/PickersLayout';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from 'dayjs';
 import { DateRange } from '@mui/x-date-pickers-pro';
-import { Grid } from '@mui/material'
 import utc from 'dayjs/plugin/utc';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import { ServiceAvailability } from '../../api/ServiceAvailability.interface';
 import { getAccommodationServiceAvailability } from '../../api';
-import calendarReducer from './calendarReducer';
 import CircularProgress from '@mui/material/CircularProgress';
 import {
     DateRangePickerDay as MuiDateRangePickerDay,
@@ -22,6 +20,7 @@ import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
+import { AccommodationSearchContext, AccommodationSearchDispatchContext, useAccommodationSearchContext, useAccommodationSearchDispatchContext } from '../../contexts/accommodationSearch';
 
 dayjs.extend(utc);
 dayjs.extend(updateLocale)
@@ -29,10 +28,6 @@ dayjs.updateLocale('en', {
     weekStart: 1,
 
 })
-
-export interface ICalendarProps {
-    setSelectedDateRange: (dateRange: DateRange<Dayjs>) => void
-}
 
 const DateRangePickerDay = styled(MuiDateRangePickerDay)(
     ({
@@ -90,20 +85,25 @@ const DateRangePickerDay = styled(MuiDateRangePickerDay)(
 ) as React.ComponentType<DateRangePickerDayProps<Dayjs>>;
 
 
-const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
+const Calendar: React.FC = () => {
 
-    const [calendarState, dispatch] = useReducer(calendarReducer, initialCalendarState)
+    const dispatch = useAccommodationSearchDispatchContext()
+    const accommodationSearchState = useAccommodationSearchContext()
+
+    console.log(accommodationSearchState)
 
     // Fetch the fully booked dates for each selected month
     useEffect(() => {
         updateIsLoading(true)
-        updateFullyBookedDates(calendarState)
-    }, [calendarState.selectedMonth, calendarState.selectedRoomTypes])
+        updateFullyBookedDates()
+    }, [accommodationSearchState.selectedMonth, accommodationSearchState.selectedRoomTypes])
 
     useEffect(() => {
-        updateMaxDate(calendarState.selectedDateRange.arrival, calendarState.fullyBookedDates)
-        return () => { updateIsLoading(false) }
-    }, [calendarState.fullyBookedDates, calendarState.selectedDateRange.arrival])
+        updateMaxDate(accommodationSearchState.selectedDateRange.arrival, accommodationSearchState.fullyBookedDates)
+        return () => { 
+            updateIsLoading(false) 
+        }
+    }, [accommodationSearchState.fullyBookedDates, accommodationSearchState.selectedDateRange.arrival])
 
     return (
         <>
@@ -138,14 +138,15 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
                     disablePast={true}
                     displayWeekNumber={true}
                     showDaysOutsideCurrentMonth={true}
-                    loading={calendarState.isLoading}
-                    maxDate={calendarState.maxDate ? calendarState.maxDate : undefined}
+                    loading={accommodationSearchState.isLoading}
+                    maxDate={accommodationSearchState.maxDate ? accommodationSearchState.maxDate : undefined}
                     timezone='UTC'
                     disableHighlightToday={true}
                     disableAutoMonthSwitching={true}
                     onMonthChange={handleCalendarOnMonthChange}
                     onChange={handleCalendarOnChange}
                     rangePosition={getRangePosition()}
+                    value={[accommodationSearchState.selectedDateRange.arrival, accommodationSearchState.selectedDateRange.departure]}
                     shouldDisableDate={handleCalendarShouldDisableDate}
                     renderLoading={() => <CircularProgress />}
                     slotProps={{
@@ -162,34 +163,27 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
                     }}
                 />
             </LocalizationProvider>
-
-            <Grid container>
-                <Grid item lg={12}>
-                    <h4>Description</h4>
-                </Grid>
-            </Grid>
         </>
     )
 
     function getRangePosition(): 'start' | 'end' {
-        if (calendarState.selectedDateRange.arrival !== null &&
-            calendarState.selectedDateRange.departure === null) {
+        if (accommodationSearchState.selectedDateRange.arrival !== null &&
+            accommodationSearchState.selectedDateRange.departure === null) {
             return 'end'
         } else {
             return 'start'
         }
     }
 
-    async function updateFullyBookedDates(calendarState: CalendarState) {
-        const endDate = calendarState.selectedMonth.add(1, 'month').endOf('month').startOf('date')
-        const startDate = calendarState.selectedMonth.subtract(1, 'month').startOf('month').startOf('date')
-        const serviceAvailability = await getAccommodationServiceAvailability(startDate, endDate, calendarState.selectedRoomTypes)
-        console.log(serviceAvailability)
+    async function updateFullyBookedDates() {
+        const endDate = accommodationSearchState.selectedMonth.add(1, 'month').endOf('month').startOf('date')
+        const startDate = accommodationSearchState.selectedMonth.subtract(1, 'month').startOf('month').startOf('date')
+        const serviceAvailability = await getAccommodationServiceAvailability(startDate, endDate, accommodationSearchState.selectedRoomTypes)
         const newListOfFullyBookedDates = getFullyBookedDatesFromServiceAvailability(serviceAvailability)
         dispatch({
             type: 'update_fully_booked_dates',
             payload: {
-                ...calendarState,
+                ...accommodationSearchState,
                 fullyBookedDates: newListOfFullyBookedDates,
             }
         })
@@ -199,8 +193,21 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
         dispatch({
             type: 'update_max_date',
             payload: {
-                ...calendarState,
+                ...accommodationSearchState,
                 maxDate: getNextFullyBookedDate(arrivalDate, fullyBookedDates)
+            }
+        })
+    }
+
+    function clearSelectedRange() {
+        dispatch({
+            type: 'changed_selected_date_range',
+            payload: {
+                ...accommodationSearchState,
+                selectedDateRange: {
+                    arrival: null,
+                    departure: null
+                }
             }
         })
     }
@@ -209,42 +216,36 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
         dispatch({
             type: 'update_is_loading',
             payload: {
-                ...calendarState,
+                ...accommodationSearchState,
                 isLoading: isLoading
             }
         })
     }
 
     function handleOnRoomCheckboxChange(event: React.ChangeEvent<HTMLInputElement>, checked: boolean) {
+        clearSelectedRange()
         dispatch({
             type: 'update_room_checkbox',
             payload: {
-                ...calendarState,
+                ...accommodationSearchState,
                 selectedRoomTypes: {
-                    ...calendarState.selectedRoomTypes,
+                    ...accommodationSearchState.selectedRoomTypes,
                     [event.target.value]: checked
                 }
             }
-        })
+        }) 
     }
 
     function handleCalendarOnChange(dateRange: DateRange<Dayjs>) {
-
-        const arrivalDate = dateRange[0]
-        const departureDate = dateRange[1]
-
-        if (arrivalDate !== null && departureDate !== null) {
-            props.setSelectedDateRange(dateRange)
-        }
-
         dispatch({
             type: 'changed_selected_date_range',
             payload: {
-                ...calendarState,
+                ...accommodationSearchState,
                 selectedDateRange: {
-                    arrival: arrivalDate,
-                    departure: departureDate
+                    arrival: dateRange[0],
+                    departure: dateRange[1]
                 }
+
             }
         })
     }
@@ -253,14 +254,14 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
         dispatch({
             type: 'changed_month',
             payload: {
-                ...calendarState,
+                ...accommodationSearchState,
                 selectedMonth: month
             }
         })
     }
 
     function handleCalendarShouldDisableDate(dateToBeChecked: Dayjs, position: 'start' | 'end'): boolean {
-        const arrivalDate = calendarState.selectedDateRange.arrival
+        const arrivalDate = accommodationSearchState.selectedDateRange.arrival
         const isDateFullyBooked = checkIfDateFullyBooked(dateToBeChecked)
         const isBeforeArrivalDate = checkIfDateIsBeforeArrivalDate(dateToBeChecked, arrivalDate)
         const isDatePossibleDepartureDate = checkIfDateIsPossibleDepartureDate(dateToBeChecked, arrivalDate)
@@ -294,13 +295,13 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
     }
 
     function checkIfDateFullyBooked(dateToBeChecked: Dayjs): boolean {
-        return calendarState.fullyBookedDates.filter((date) => {
+        return accommodationSearchState.fullyBookedDates.filter((date) => {
             return date.isSame(dateToBeChecked, 'date')
         }).length > 0
     }
 
     function checkIfDateIsPossibleDepartureDate(dateToBeChecked: Dayjs, arrivalDate: Dayjs | null): boolean {
-        const nextFullyBookedDate = getNextFullyBookedDate(arrivalDate, calendarState.fullyBookedDates)
+        const nextFullyBookedDate = getNextFullyBookedDate(arrivalDate, accommodationSearchState.fullyBookedDates)
         return dateToBeChecked.isSame(nextFullyBookedDate, 'date')
     }
 
@@ -336,35 +337,3 @@ const Calendar: React.FC<ICalendarProps> = ({ ...props }) => {
 }
 
 export default Calendar
-
-
-export interface CalendarState {
-    isLoading: boolean,
-    fullyBookedDates: Dayjs[],
-    selectedMonth: Dayjs,
-    selectedDateRange: {
-        arrival: Dayjs | null,
-        departure: Dayjs | null
-    },
-    maxDate: Dayjs | null,
-    selectedRoomTypes: {
-        [roomType: string]: boolean
-    }
-}
-
-const initialCalendarState: CalendarState = {
-    isLoading: true,
-    fullyBookedDates: [],
-    selectedMonth: dayjs().startOf('month'),
-    selectedDateRange: {
-        arrival: null,
-        departure: null
-    },
-    maxDate: null,
-    selectedRoomTypes: {
-        skySuite: true,
-        igloo180: true,
-        igloo360: true,
-        seaCabin: true
-    }
-}

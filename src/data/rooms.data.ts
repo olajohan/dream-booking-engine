@@ -1,6 +1,6 @@
-import { RoomCardProps } from '../components/RoomCard'
+import { RoomCategoryCardProps } from '../components/RoomCard'
 
-export const rooms: RoomCardProps[] = [
+export const rooms: RoomCategoryCardProps[] = [
   {
     name: 'Sky Suites',
     text: 'Designed for the highest possible comfort, our Sky Suites features bright panoramic windows, private jacuzzi, a comfortable king-sized bed, a stylish large bathroom/shower, radiant floor heating and an indoor access to the reception and restaurant.',

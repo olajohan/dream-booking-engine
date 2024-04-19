@@ -1,7 +1,8 @@
 import { createContext } from 'react';
 import { Hotel } from '../api/Hotel.interface';
+import { useImmerReducer } from 'use-immer';
 
-export const defaultHotelContextObject = {
+export const initialHotelContextState = {
     Languages: [],
     Currencies: [],
     Countries: [],
@@ -45,5 +46,4 @@ export const defaultHotelContextObject = {
     }
 }
 
-export const HotelContext = createContext<Hotel>(defaultHotelContextObject);
-
+export const HotelContext = createContext<Hotel>(initialHotelContextState);

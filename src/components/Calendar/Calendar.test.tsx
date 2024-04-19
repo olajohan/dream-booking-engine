@@ -10,7 +10,7 @@ const setDateRange = (dateRange: DateRange<Dayjs>) => {
 
 describe('Calendar tests', () => {
     test('See if calendar renders month', () => {
-        render(<Calendar setSelectedDateRange={setDateRange} />)
+        render(<Calendar />)
         const elem = screen.getByText('April 2024')
         expect(elem).toBeInTheDocument()
 

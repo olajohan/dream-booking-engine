@@ -3,7 +3,7 @@ import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 
 const steps = [
-    'Accommodation',
+    'Stay',
     'Activities',
     'Extras',
     'Transport',

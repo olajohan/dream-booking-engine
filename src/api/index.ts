@@ -87,8 +87,6 @@ export function getHotelAvailability(
     }
     ).then((response) => {
         return response.json() as Promise<AccommodationAvailability>
-    }).then((availability) => {
-        return availability
     })
 }
 
@@ -113,7 +111,6 @@ function getServiceAvailability(
     selectedRoomTypes: { [roomType: string]: boolean }
 ): Promise<ServiceAvailability> {
 
-    console.log(selectedRoomTypes)
     const categoryIds = Object.entries(selectedRoomTypes).filter((entry, index) => {
         return entry[1]
     }).flatMap((entry, index) => {

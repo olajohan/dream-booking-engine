@@ -9,14 +9,14 @@ import { Button, CardActionArea, CardActions } from '@mui/material';
 import { Link } from 'react-router-dom'
 
 
-export interface RoomCardProps {
+export interface RoomCategoryCardProps {
   name: string;
   id: string;
   text: string;
   image: string;
 }
 
-export default function MultiActionAreaCard(props: RoomCardProps) {
+export default function RoomCategoryCard(props: RoomCategoryCardProps) {
   return (
     <Card>
       <CardActionArea>

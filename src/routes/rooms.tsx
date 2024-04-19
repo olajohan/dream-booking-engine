@@ -5,50 +5,26 @@ import RoomCard from '../components/RoomCard'
 import { rooms } from '../data/rooms.data'
 import Item from '../components/PaperItem'
 import Calendar from '../components/Calendar/Calendar';
-import { DateRange } from '@mui/x-date-pickers-pro';
-import { Dayjs } from 'dayjs'
 import { getHotelAvailability } from '../api';
 import { AccommodationAvailability } from '../api/AccommodationAvailability.interface';
-import Checkbox from '@mui/material/Checkbox';
-
+import { useAccommodationSearchContext } from '../contexts/accommodationSearch';
 
 function Rooms() {
 
-  const [selectedDateRange, setSelectedDateRange] = useState<DateRange<Dayjs>>()
   const [accommodationAvailability, setAccommodationAvailability] = useState<AccommodationAvailability>()
-
-  const setSelectedDateRangeHandler = (dateRange: DateRange<Dayjs> | undefined) => {
-      setSelectedDateRange(dateRange)
-  }
+  const accommodationSearchState = useAccommodationSearchContext()
 
   useEffect(() => {
-    const arrivalDate = selectedDateRange?.[0]
-    const departureDate = selectedDateRange?.[1]
+    if (accommodationSearchState.selectedDateRange.arrival && accommodationSearchState.selectedDateRange.departure) {
 
-    if (arrivalDate && departureDate) {
-      getHotelAvailability(arrivalDate, departureDate).then((availability) => setAccommodationAvailability(availability))
     }
-  }, [selectedDateRange])
-
-  const CalendarOrSelectedDates = () => {
-    if (selectedDateRange === undefined) {
-      return (<Calendar setSelectedDateRange={setSelectedDateRangeHandler} />)
-    } else {
-      return (
-        <Grid item>
-          <h3>Arrival date:<br /> {selectedDateRange?.[0]?.toString()}</h3>
-          <h3>Departure date:<br /> {selectedDateRange?.[1]?.toString()}</h3>
-          <Button onClick={() => { setSelectedDateRangeHandler(undefined) }}>Clear</Button>
-        </Grid>
-      )
-    }
-  }
+  }, [accommodationSearchState.selectedDateRange])
 
   return (
     <Grid container spacing={2}>
       <Grid item md={12} xs={12} lg={4}>
         <Item>
-          <CalendarOrSelectedDates />
+          <Calendar />
         </Item>
       </Grid>
       <Grid item md={12} xs={12} lg={8}>
