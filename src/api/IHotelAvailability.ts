@@ -1,4 +1,4 @@
-export interface AccommodationAvailability {
+export interface IHotelAvailability {
     RateGroups: RateGroup[]
     Rates: Rate[]
     RoomCategoryAvailabilities: RoomCategoryAvailability[]
@@ -30,10 +30,12 @@ export interface AccommodationAvailability {
   }
   
   export interface Name {
-    "en-GB": string
+    "en-US": string
   }
   
-  export interface Description {}
+  export interface Description {
+    "en-US": string
+  }
   
   export interface RoomCategoryAvailability {
     RoomCategoryId: string

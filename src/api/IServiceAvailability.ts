@@ -1,4 +1,4 @@
-export interface ServiceAvailability {
+export interface IServiceAvailability {
     TimeUnitStartsUtc: string[]
     CategoryAvailabilities: CategoryAvailability[]
     ApplicableRestrictions: any[]
@@ -8,4 +8,5 @@ export interface ServiceAvailability {
     CategoryId: string
     Availabilities: number[]
   }
+
   

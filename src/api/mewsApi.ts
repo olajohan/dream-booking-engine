@@ -1,12 +1,12 @@
-import dayjs from 'dayjs'
-import { Dayjs } from 'dayjs'
+import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { Hotel, OccupancyData } from './Hotel.interface'
-import { AccommodationAvailability } from './AccommodationAvailability.interface';
-import { ServiceAvailability } from './ServiceAvailability.interface';
+import { IHotel } from './IHotel';
+import { IServiceAvailability } from './IServiceAvailability';
+import { IHotelAvailability } from './IHotelAvailability';
+import { get } from 'http';
 dayjs.extend(utc)
 
-const ENVIRONMENT: 'demo' | 'production' = 'demo'
+const ENVIRONMENT: 'demo' | 'production' = 'production'
 const mews = {
     clientId: "lyngen-north-booking",
     enterpriseIds: {
@@ -32,6 +32,17 @@ const mews = {
         production: 'https://api.mews.com',
         demo: 'https://api.mews-demo.com'
     },
+
+    productIds: {
+        production: {
+            breakfast: "cd802d89-857d-4db8-bf9e-b13500c1c5a7",
+            threeCourseDinner: "6d0363e9-6754-42b2-a6cf-b13500c255fd",
+        },
+        demo: {
+            breakfast: '',
+            threeCourseDinner: ''
+        }
+    },
     roomsMappedToIds: {
         production: {
             igloo360: '92ac9460-d3a0-43af-a33f-b13400aacfbe',
@@ -49,9 +60,21 @@ const mews = {
         }
     }
 }
-const DEFAULT_OCCUPANCY_DATA = [{ "AgeCategoryId": mews.ageCatoryIds[ENVIRONMENT], "PersonCount": 2 }]
 
-export function getHotel(): Promise<Hotel> {
+export interface IServiceAvailabilityRequest {
+    startDateISOString: string;
+    endDateISOString: string;
+    categoryIds: string[];
+}
+
+export interface IGetHotelAvailabilityRequest {
+    startDateISOString: string;
+    endDateISOString: string;
+    occupancy: number;
+    categoryIds: string[];
+}
+
+export function getHotel(): Promise<IHotel> {
 
     return fetch(
         mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/hotels/get', {
@@ -59,19 +82,17 @@ export function getHotel(): Promise<Hotel> {
         body: JSON.stringify({
             "Client": mews.clientId,
             "HotelId": mews.enterpriseIds[ENVIRONMENT],
-
         })
     }).then((response) => {
-        return response.json() as Promise<Hotel>
-    }).then((getHotelResponse) => {
-        return getHotelResponse
+        return response.json() as Promise<IHotel>
     })
 }
 
 export function getHotelAvailability(
-    startDate: Dayjs, 
-    endDate: Dayjs,
-    occupancyData: OccupancyData[] = DEFAULT_OCCUPANCY_DATA): Promise<AccommodationAvailability> {
+    getHotelAvailabilityRequest: IGetHotelAvailabilityRequest
+): Promise<IHotelAvailability> {
+
+    const { startDateISOString, endDateISOString, occupancy, categoryIds } = getHotelAvailabilityRequest
 
     return fetch(
         mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/hotels/getAvailability', {
@@ -80,67 +101,56 @@ export function getHotelAvailability(
             "Client": mews.clientId,
             "ConfigurationId": mews.configurationIds[ENVIRONMENT],
             "HotelId": mews.enterpriseIds[ENVIRONMENT],
-            "StartUtc": startDate.startOf('day').toISOString(),
-            "EndUtc": endDate.startOf('day').toISOString(),
-            "OccupancyData": occupancyData,
+            "StartUtc": dayjs(startDateISOString).startOf('day').toISOString(),
+            "EndUtc": dayjs(endDateISOString).startOf('day').toISOString(),
+            "CategoryIds": categoryIds,
+            "OccupancyData": [
+                {
+                    "AgeCategoryId": mews.ageCatoryIds[ENVIRONMENT],
+                    "PersonCount": occupancy
+                }
+            ],
+            "ProductIds": [
+                mews.productIds[ENVIRONMENT].breakfast,
+                mews.productIds[ENVIRONMENT].threeCourseDinner
+            ]
         })
     }
     ).then((response) => {
-        return response.json() as Promise<AccommodationAvailability>
+        return response.json() as Promise<IHotelAvailability>
     })
 }
 
-export function getAccommodationServiceAvailability(
-    startDate: Dayjs,
-    endDate: Dayjs,
-    selectedRoomTypes: { [roomType: string]: boolean }
-): Promise<ServiceAvailability> {
+export function getStayServiceAvailability(
+    serviceAvailabilityRequest: IServiceAvailabilityRequest
+): Promise<IServiceAvailability> {
 
     return getServiceAvailability(
-        startDate, 
-        endDate,
+        serviceAvailabilityRequest.startDateISOString,
+        serviceAvailabilityRequest.endDateISOString,
         mews.serviceIds.accommodation[ENVIRONMENT],
-        selectedRoomTypes 
+        serviceAvailabilityRequest.categoryIds
     )
 }
 
 function getServiceAvailability(
-    startDate: Dayjs,
-    endDate: Dayjs,
+    startDateISOString: string,
+    endDateISOString: string,
     serviceId: string,
-    selectedRoomTypes: { [roomType: string]: boolean }
-): Promise<ServiceAvailability> {
-
-    const categoryIds = Object.entries(selectedRoomTypes).filter((entry, index) => {
-        return entry[1]
-    }).flatMap((entry, index) => {
-        const roomName = entry[0]
-        
-        switch(roomName) {
-            case ('skySuite'): return mews.roomsMappedToIds[ENVIRONMENT][roomName]
-            case ('seaCabin'): return mews.roomsMappedToIds[ENVIRONMENT][roomName]
-            case ('igloo360'): return mews.roomsMappedToIds[ENVIRONMENT][roomName]
-            case ('igloo180'): return [mews.roomsMappedToIds[ENVIRONMENT]['igloo1801'], mews.roomsMappedToIds[ENVIRONMENT]['igloo1802']]
-            default: break;
-        }
-    })
+    categoryIds: string[]
+): Promise<IServiceAvailability> {
 
     return fetch(mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/services/getAvailability', {
         method: "POST",
         body: JSON.stringify({
             "Client": mews.clientId,
             "EnterpriseId": mews.enterpriseIds[ENVIRONMENT],
-            "StartUtc": startDate.toISOString(),
-            "EndUtc": endDate.toISOString(),
+            "StartUtc": startDateISOString,
+            "EndUtc": endDateISOString,
             "ServiceId": serviceId,
             "CategoryIds": categoryIds,
         })
     }).then((response) => {
-        return response.json() as Promise<ServiceAvailability>
-    }).then((serviceAvailability) => {        
-        return serviceAvailability
+        return response.json() as Promise<IServiceAvailability>
     })
 }
-
-
-

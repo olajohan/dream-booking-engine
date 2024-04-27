@@ -1,42 +1,32 @@
-import React, { StrictMode } from 'react';
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
+import { Provider } from 'react-redux';
+import { RouterProvider } from "react-router-dom";
 import reportWebVitals from './reportWebVitals';
-import Root from './routes/root'
-import Rooms from './routes/rooms'
-import Room from './routes/room';
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { ThemeProvider, CssBaseline } from "@mui/material";
+import { router } from './routes/router';
+import store from './state/store';
 import { appTheme } from './theme';
-
+import { persistStore } from "redux-persist";
+import { PersistGate } from "redux-persist/integration/react";
+import GlobalSpinner from "./components/GlobalSpinner/GlobalSpinner";
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
-
-const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Root />,
-    children: [
-      {
-        index: true,
-        element: <Rooms />,
-      },
-      {
-        path: 'rooms/:roomId',
-        element: <Room />
-      }
-    ]
-  }
-]);
-
+let persistor = persistStore(store);
 
 root.render(
   <StrictMode>
-    <ThemeProvider theme={appTheme}>
-    <CssBaseline enableColorScheme />
-      <RouterProvider router={router} />
-    </ThemeProvider>
+    <Provider store={store}>
+      <PersistGate loading={<GlobalSpinner />} persistor={persistor}>
+        <ThemeProvider theme={appTheme}>
+          <CssBaseline enableColorScheme />
+          <RouterProvider router={router} />
+        </ThemeProvider>
+      </PersistGate>
+    </Provider>
+
   </StrictMode>
 );
 

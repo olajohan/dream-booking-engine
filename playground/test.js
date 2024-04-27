@@ -1,13 +1,12 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const dayjs_1 = __importDefault(require("dayjs"));
 function main() {
-    const today = (0, dayjs_1.default)();
-    const startOfToday = today.startOf('date');
-    console.log(`Today ${today}`);
-    console.log(`Start of today UTC offset ${startOfToday.utcOffset()}`);
+    const arr = [1, 2, 3, 4, 5];
+    const mutated = arr.reduce((acc, curr) => {
+        return acc + curr;
+    });
+    console.log("TETSS");
+    console.log(arr);
+    console.log(mutated);
 }
 main();
