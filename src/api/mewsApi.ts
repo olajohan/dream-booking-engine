@@ -1,9 +1,12 @@
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { IHotel } from './IHotel';
-import { IServiceAvailability } from './IServiceAvailability';
-import { IHotelAvailability } from './IHotelAvailability';
-import { get } from 'http';
+import { IHotel } from '../domain/IHotel';
+import { IApiHotel } from './IApiHotel';
+import { IApiHotelAvailability } from './IApiHotelAvailability';
+import { IApiServiceAvailability } from './IApiServiceAvailability';
+import { mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability, mapApiHoteltoDomainHotel, mapApiOccupancyPricingToDomainOccupancyPrice } from './mapper';
+import { IRoomCategory } from '../domain/IRoomCategory';
+import { IRoomCategoryWithAvailability } from '../domain/IRoomCategoryWithAvailability';
 dayjs.extend(utc)
 
 const ENVIRONMENT: 'demo' | 'production' = 'production'
@@ -61,17 +64,18 @@ const mews = {
     }
 }
 
-export interface IServiceAvailabilityRequest {
+export interface IGeneralApiRequest {
     startDateISOString: string;
     endDateISOString: string;
     categoryIds: string[];
 }
 
-export interface IGetHotelAvailabilityRequest {
-    startDateISOString: string;
-    endDateISOString: string;
+export interface IHotelRequest extends IGeneralApiRequest {
     occupancy: number;
-    categoryIds: string[];
+}
+
+export interface IGetRateOccupancyPricingRequest extends IHotelRequest {
+    rateId: string;
 }
 
 export function getHotel(): Promise<IHotel> {
@@ -84,13 +88,17 @@ export function getHotel(): Promise<IHotel> {
             "HotelId": mews.enterpriseIds[ENVIRONMENT],
         })
     }).then((response) => {
-        return response.json() as Promise<IHotel>
+        return response.json() as Promise<IApiHotel>
+    }).then((apiHotel) => {
+        return mapApiHoteltoDomainHotel(apiHotel)
     })
 }
 
-export function getHotelAvailability(
-    getHotelAvailabilityRequest: IGetHotelAvailabilityRequest
-): Promise<IHotelAvailability> {
+
+
+export function getRoomCategoriesAvailability(
+    getHotelAvailabilityRequest: IHotelRequest
+) {
 
     const { startDateISOString, endDateISOString, occupancy, categoryIds } = getHotelAvailabilityRequest
 
@@ -116,14 +124,18 @@ export function getHotelAvailability(
             ]
         })
     }
-    ).then((response) => {
-        return response.json() as Promise<IHotelAvailability>
-    })
+    ).then(response => response.json())
+        .then(async (apiHotelAvailability) => {
+            const hotel = await getHotel()
+            return mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability(apiHotelAvailability, hotel.roomCategories)
+        }).catch(error => {
+            throw new Error("Failed to get room category availability from Mews API.")
+        })
 }
 
 export function getStayServiceAvailability(
-    serviceAvailabilityRequest: IServiceAvailabilityRequest
-): Promise<IServiceAvailability> {
+    serviceAvailabilityRequest: IGeneralApiRequest
+): Promise<IApiServiceAvailability> {
 
     return getServiceAvailability(
         serviceAvailabilityRequest.startDateISOString,
@@ -138,7 +150,7 @@ function getServiceAvailability(
     endDateISOString: string,
     serviceId: string,
     categoryIds: string[]
-): Promise<IServiceAvailability> {
+): Promise<IApiServiceAvailability> {
 
     return fetch(mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/services/getAvailability', {
         method: "POST",
@@ -151,6 +163,37 @@ function getServiceAvailability(
             "CategoryIds": categoryIds,
         })
     }).then((response) => {
-        return response.json() as Promise<IServiceAvailability>
+        return response.json() as Promise<IApiServiceAvailability>
     })
+}
+
+export function getPricing(getRateOccupancyPricingRequest: IGetRateOccupancyPricingRequest) {
+
+    return fetch(mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/reservations/getPricing', {
+        method: "POST",
+        body: JSON.stringify({
+            "Client": mews.clientId,
+            "HotelId": mews.enterpriseIds[ENVIRONMENT],
+            "StartUtc": dayjs(getRateOccupancyPricingRequest.startDateISOString).startOf('day').toISOString(),
+            "EndUtc": dayjs(getRateOccupancyPricingRequest.endDateISOString).startOf('day').toISOString(),
+            "RoomCategoryId": getRateOccupancyPricingRequest.categoryIds.join(),
+            "Occupancies": [
+                {
+                    "OccupancyData": [
+                        {
+                            "AgeCategoryId": mews.ageCatoryIds[ENVIRONMENT],
+                            "PersonCount": getRateOccupancyPricingRequest.occupancy
+                        }
+                    ]
+                }
+
+            ],
+            "ProductIds": [
+                mews.productIds[ENVIRONMENT].breakfast,
+                mews.productIds[ENVIRONMENT].threeCourseDinner
+            ]
+        })
+    })
+        .then(response => response.json())
+        .then((pricing) => mapApiOccupancyPricingToDomainOccupancyPrice(pricing, getRateOccupancyPricingRequest.rateId))
 }

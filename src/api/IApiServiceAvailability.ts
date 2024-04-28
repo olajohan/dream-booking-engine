@@ -1,4 +1,4 @@
-export interface IServiceAvailability {
+export interface IApiServiceAvailability {
     TimeUnitStartsUtc: string[]
     CategoryAvailabilities: CategoryAvailability[]
     ApplicableRestrictions: any[]

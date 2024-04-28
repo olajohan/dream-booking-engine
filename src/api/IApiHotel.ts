@@ -1,11 +1,11 @@
-export interface IHotel {
-    Languages: Language[]
-    Currencies: Currency[]
-    Countries: Country[]
+export interface IApiHotel {
+    Languages: IApiLanguage[]
+    Currencies: IApiCurrency[]
+    Countries: IApiCountry[]
     ImageBaseUrl: string
     Id: string
-    Name: Name
-    Description: Description
+    Name: IApiName
+    Description: IApiDescription
     CityId: string
     ImageId: string
     IntroImageId: string
@@ -16,29 +16,29 @@ export interface IHotel {
     AcceptedCurrencyCodes: string[]
     TaxEnvironmentCode: string
     Pricing: string
-    RoomCategories: RoomCategory[]
-    Products: Product[]
-    PaymentGateway: PaymentGateway
+    RoomCategories: IApiRoomCategory[]
+    Products: IApiProduct[]
+    PaymentGateway: IApiPaymentGateway
     TermsAndConditionsUrl: string
     IanaTimeZoneIdentifier: string
     Email: string
     Telephone: string
     AdditionalLegalStatements: any[]
-    Address: Address
+    Address: IApiAddress
   }
   
-  export interface Language {
+  export interface IApiLanguage {
     Code: string
     Name: string
-    DefaultCulture: DefaultCulture
+    DefaultCulture: IApiDefaultCulture
   }
   
-  export interface DefaultCulture {
+  export interface IApiDefaultCulture {
     CurrencyDecimalSeparator: string
     CurrencyGroupSeparator: string
   }
   
-  export interface Currency {
+  export interface IApiCurrency {
     Code: string
     Symbol: string
     ValueFormat: string
@@ -46,24 +46,24 @@ export interface IHotel {
     SymbolIsBehindValue: boolean
   }
   
-  export interface Country {
+  export interface IApiCountry {
     Code: string
     SovereignCountryCode: string
     Name: string
   }
   
-  export interface Name {
+  export interface IApiName {
     "en-US": string
   }
   
-  export interface Description {
+  export interface IApiDescription {
     "en-US": string
   }
   
-  export interface RoomCategory {
+  export interface IApiRoomCategory {
     Id: string
-    Name: RoomCategoryName
-    Description: RoomCategoryDescription
+    Name: IApiRoomCategoryName
+    Description: IApiRoomCategoryDescription
     ImageIds: string[]
     Ordering: number
     NormalBedCount: number
@@ -71,23 +71,23 @@ export interface IHotel {
     SpaceType: string
   }
   
-  export interface RoomCategoryName {
+  export interface IApiRoomCategoryName {
     "en-US": string
   }
   
-  export interface RoomCategoryDescription {
+  export interface IApiRoomCategoryDescription {
     "en-US": string
   }
   
-  export interface Product {
+  export interface IApiProduct {
     Id: string
-    Name: ProductName
-    Description: ProductDescription
+    Name: IApiProductName
+    Description: IApiProductDescription
     CategoryId: string
     ImageId?: string
     IncludedByDefault: boolean
     AlwaysIncluded: boolean
-    Prices: Prices
+    Prices: IApiPrices
     Pricing: Pricing
     Amounts: Amounts
     RelativePrice: any
@@ -98,15 +98,15 @@ export interface IHotel {
     Ordering: number
   }
   
-  export interface ProductName {
+  export interface IApiProductName {
     "en-US": string
   }
   
-  export interface ProductDescription {
+  export interface IApiProductDescription {
     "en-US": string
   }
   
-  export interface Prices {
+  export interface IApiPrices {
     KES: number
     RUB: number
     ZAR: number
@@ -3452,30 +3452,30 @@ export interface IHotel {
     TaxValue: number
   }
   
-  export interface PaymentGateway {
+  export interface IApiPaymentGateway {
     PaymentGatewayType: string
     PaymentCardStorageType: string
     IsMerchant: boolean
     Model: string
     SupportedCreditCardTypes: string[]
-    SupportedPaymentMethods: SupportedPaymentMethods
+    SupportedPaymentMethods: IApiSupportedPaymentMethods
     PublicKey: string
     DefaultCurrencyCode: string
-    Accounts: Account[]
+    Accounts: IApiAccount[]
   }
   
-  export interface SupportedPaymentMethods {
+  export interface IApiSupportedPaymentMethods {
     PaymentCard: boolean
     Ideal: boolean
     ApplePay: boolean
     GooglePay: boolean
   }
   
-  export interface Account {
+  export interface IApiAccount {
     CurrencyCode: string
   }
   
-  export interface Address {
+  export interface IApiAddress {
     Line1: string
     Line2: any
     City: string

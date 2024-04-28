@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { getHotel } from "../../api/mewsApi";
-import { IHotel } from "../../api/IHotel";
+import { IApiHotel } from "../../api/IApiHotel";
+import { IHotel } from "../../domain/IHotel";
 
 interface IHotelState {
     hotel: IHotel | null;

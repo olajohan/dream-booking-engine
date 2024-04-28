@@ -12,13 +12,14 @@ import dayjs, { Dayjs } from "dayjs";
 import updateLocale from 'dayjs/plugin/updateLocale';
 import utc from 'dayjs/plugin/utc';
 import { useEffect, useState } from "react";
-import { IServiceAvailability } from "../../api/IServiceAvailability";
-import { IServiceAvailabilityRequest, getStayServiceAvailability } from "../../api/mewsApi";
+import { IApiServiceAvailability } from "../../api/IApiServiceAvailability";
+import { IGeneralApiRequest, getStayServiceAvailability } from "../../api/mewsApi";
 import { IStayOccupancy } from "../../state/stayOccupancy/stayOccupancySlice";
 import { IStaySearch } from "../../state/staySearch/staySearchSlice";
 import { useSelector } from "react-redux";
 import { RootState } from "../../state/store";
-import { IHotel } from "../../api/IHotel";
+import { IApiHotel } from "../../api/IApiHotel";
+import { IHotel } from "../../domain/IHotel";
 
 dayjs.extend(utc);
 dayjs.extend(updateLocale)
@@ -188,7 +189,7 @@ export default function StaticBookingCalendar(props: IInputCalendarProps) {
             startDateISOString: startDate.toISOString(),
             endDateISOString: endDate.toISOString(),
             categoryIds: staySearch.selectedRoomCategories,
-        } as IServiceAvailabilityRequest
+        } as IGeneralApiRequest
 
         const serviceAvailability = await getStayServiceAvailability(request)
         const newListOfFullyBookedDates = getFullyBookedDatesFromServiceAvailability(serviceAvailability)
@@ -235,25 +236,22 @@ export default function StaticBookingCalendar(props: IInputCalendarProps) {
         return null
     }
 
-    function getFullyBookedDatesFromServiceAvailability(accommodationServiceAvailability: IServiceAvailability): Dayjs[] {
+    function getFullyBookedDatesFromServiceAvailability(accommodationServiceAvailability: IApiServiceAvailability): Dayjs[] {
 
         return accommodationServiceAvailability.TimeUnitStartsUtc.filter((timeUnit, index) => {
             let totalAvailability = 0
-            let doubleRoomAvailability = 0
-            let fourbedRoomAvailability = 0
+            let moreThanTwoBedAvailability = 0
+
             accommodationServiceAvailability.CategoryAvailabilities.forEach((category) => {
                 totalAvailability += category.Availabilities[index]
-                if (hotel.RoomCategories.find(hotelCategory => hotelCategory.Id === category.CategoryId && hotelCategory.NormalBedCount > 2)) {
-                    fourbedRoomAvailability += category.Availabilities[index]
-                } else {
-                    doubleRoomAvailability += category.Availabilities[index]
+                if (hotel.roomCategories.find(hotelCategory => hotelCategory.id === category.CategoryId && hotelCategory.maxOccupancy > 2)) {
+                    moreThanTwoBedAvailability += category.Availabilities[index]
                 }
             })
 
             if (totalAvailability <= 0 ||
                 totalAvailability < selectedRoomOccupancy.length ||
-                doubleRoomAvailability < selectedRoomOccupancy.filter(occupancy => occupancy.occupancy <= 2).length ||
-                fourbedRoomAvailability < selectedRoomOccupancy.filter(occupancy => occupancy.occupancy > 2).length) {
+                moreThanTwoBedAvailability < selectedRoomOccupancy.filter(occupancy => occupancy.occupancy > 2).length) {
                 
                     return true
             }

@@ -2,11 +2,11 @@ import { FormControl, InputLabel, Select, OutlinedInput, Box, Chip, MenuItem, Se
 import { IStaySearch, selectRoomCategory, selectStaySearch, setSelectedRoomCategories, unselectRoomCategory } from "../../state/staySearch/staySearchSlice"
 import { useDispatch, useSelector } from "react-redux"
 import { AppDispatch, RootState } from "../../state/store"
-import { IHotel } from "../../api/IHotel";
-import { IHotelAvailability } from "../../api/IHotelAvailability";
-import { IStayAvailabilityState } from "../../state/stayAvailability/stayAvailabilitySlice";
+import { IApiHotel } from "../../api/IApiHotel";
+import { IApiHotelAvailability } from "../../api/IApiHotelAvailability";
 import { IStayOccupancy } from "../../state/stayOccupancy/stayOccupancySlice";
 import { useEffect } from "react";
+import { IHotel } from "../../domain/IHotel";
 
 
 const ROOM_CATEGORIES_IDS_TOTAL_NUMBER_OF_ROOMS_PER_ID: { [key: string]: number } = {
@@ -45,7 +45,7 @@ export default function RoomSelector() {
 
     useEffect(() => {
 
-        const allCategories = hotel.RoomCategories.map(roomCategory => roomCategory.Id)
+        const allCategories = hotel.roomCategories.map(roomCategory => roomCategory.id)
         dispatch(setSelectedRoomCategories(allCategories))
     }, [roomsOccupancy])
 
@@ -69,15 +69,15 @@ export default function RoomSelector() {
                 MenuProps={MenuProps}
 
             >
-                {hotel.RoomCategories.map((room) => {
-                    const disabled = shouldBeDisabled(room.NormalBedCount, room.Id)
+                {hotel.roomCategories.map((room) => {
+                    const disabled = shouldBeDisabled(room.maxOccupancy, room.id)
                     return (
                         <MenuItem
-                            key={room.Id}
-                            value={room.Id}
+                            key={room.id}
+                            value={room.id}
                             disabled={disabled}
                         >
-                            {disabled? `${room.Name["en-US"]}` : room.Name["en-US"]}
+                            {disabled? `${room.name}` : room.name}
                         </MenuItem>
                     )
                 })}
@@ -86,7 +86,7 @@ export default function RoomSelector() {
     )
 
     function getRoomNameFromId(roomCategoryId: string) {
-        return hotel.RoomCategories.find(roomCategory => roomCategory.Id === roomCategoryId)?.Name["en-US"] ?? ''
+        return hotel.roomCategories.find(roomCategory => roomCategory.id === roomCategoryId)?.name ?? ''
     }
 
     function shouldBeDisabled(currentRoomMaxOccupancy: number, roomCategoryId: string): boolean {
@@ -98,9 +98,9 @@ export default function RoomSelector() {
 
     function getCurrentSelectedCategoriesTotalNumberOfRooms(): number {
         let totalNumberOfRooms = 0;
-        hotel.RoomCategories.forEach((roomCategory) => {
-            if (calendarState.selectedRoomCategories.includes(roomCategory.Id)) {
-                totalNumberOfRooms += getCategoryTotalNumberOfRooms(roomCategory.Id)
+        hotel.roomCategories.forEach((roomCategory) => {
+            if (calendarState.selectedRoomCategories.includes(roomCategory.id)) {
+                totalNumberOfRooms += getCategoryTotalNumberOfRooms(roomCategory.id)
             }
         })
         return totalNumberOfRooms
@@ -112,9 +112,9 @@ export default function RoomSelector() {
 
     function getCurrentSelectedCategoriesMaxOccupancy(): number {
         let maxOccupancy = 0;
-        hotel.RoomCategories.forEach((roomCategory) => {
-            if (calendarState.selectedRoomCategories.includes(roomCategory.Id)) {
-                maxOccupancy += roomCategory.NormalBedCount * ROOM_CATEGORIES_IDS_TOTAL_NUMBER_OF_ROOMS_PER_ID[roomCategory.Id]
+        hotel.roomCategories.forEach((roomCategory) => {
+            if (calendarState.selectedRoomCategories.includes(roomCategory.id)) {
+                maxOccupancy += roomCategory.maxOccupancy * ROOM_CATEGORIES_IDS_TOTAL_NUMBER_OF_ROOMS_PER_ID[roomCategory.id]
             }
         })
         return maxOccupancy
@@ -127,7 +127,7 @@ export default function RoomSelector() {
     function willBeToFewBeds(roomCategoryId: string): boolean {
         return getCurrentSelectedCategoriesMaxOccupancy() -
             ROOM_CATEGORIES_IDS_TOTAL_NUMBER_OF_ROOMS_PER_ID[roomCategoryId] *
-            (hotel?.RoomCategories.find((roomCategory) => roomCategory.Id === roomCategoryId)?.NormalBedCount ?? 1) <
+            (hotel?.roomCategories.find((roomCategory) => roomCategory.id === roomCategoryId)?.maxOccupancy ?? 1) <
             roomsOccupancy.reduce((acc, roomOccupancy) => acc + roomOccupancy.occupancy, 0)
 
     }

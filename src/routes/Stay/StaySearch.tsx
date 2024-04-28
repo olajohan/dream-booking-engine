@@ -3,26 +3,29 @@ import { DateRange } from "@mui/x-date-pickers-pro"
 import dayjs, { Dayjs } from "dayjs"
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import { IHotel, RoomCategory } from "../../api/IHotel"
-import { IHotelAvailability } from "../../api/IHotelAvailability"
+import { IApiRoomCategory } from "../../api/IApiHotel"
+import { IApiHotelAvailability } from "../../api/IApiHotelAvailability"
+import { IHotelRequest, getRoomCategoriesAvailability } from "../../api/mewsApi"
 import GlobalSpinner from "../../components/GlobalSpinner/GlobalSpinner"
 import OccupancyModal from "../../components/OccupancyModal/OccupancyModal"
 import PaperItem from "../../components/PaperItem/PaperItem"
 import RoomSelector from "../../components/RoomSelector/RoomSelector"
 import StaticBookingCalendar from "../../components/StaticBookingCalendar/StaticBookingCalendar"
+import { IHotel } from "../../domain/IHotel"
+import { IRoomCategoryWithAvailability } from "../../domain/IRoomCategoryWithAvailability"
 import { selectHotel } from "../../state/hotel/hotelSlice"
-import { IStaySearch, clearSelectedDateRange, selectStaySearch, setSelectedDateRange } from "../../state/staySearch/staySearchSlice"
 import { IStayOccupancy, selectRoomsOccupancy } from "../../state/stayOccupancy/stayOccupancySlice"
+import { IStaySearch, clearSelectedDateRange, selectStaySearch, setSelectedDateRange } from "../../state/staySearch/staySearchSlice"
 import { AppDispatch, RootState } from "../../state/store"
 import "./imageGallery.css"
-import { IGetHotelAvailabilityRequest, getHotel, getHotelAvailability } from "../../api/mewsApi"
-import ReactImageGallery from "react-image-gallery"
-import SearchResultCard from "../../components/SearchResultCard/SearchResultCard"
+import { Search } from "@mui/icons-material"
+import RoomCategoryWithAvailabilityCard from "../../components/RoomCategoryWithAvailabilityCard/RoomCategoryWithAvailabilityCard"
+import RoomCategoryCard from "../../components/RoomCategoryCard/RoomCategoryCard"
 
 interface IStaySearchResultState {
   status: 'idle' | 'loading' | 'succeeded' | 'failed',
   error: string | null,
-  result: IHotelAvailability | null,
+  result: IRoomCategoryWithAvailability[] | null,
 }
 
 const InitialSearchResultState: IStaySearchResultState = {
@@ -49,14 +52,14 @@ export default function StaySearch() {
 
   useEffect(() => {
     if (search.selectedDateRange[0] !== null && search.selectedDateRange[1] !== null) {
-      console.log('searching for rooms')
+
       setSearchResultState({ error: null, status: 'loading', result: null })
-      getHotelAvailability({
+      getRoomCategoriesAvailability({
         startDateISOString: search.selectedDateRange[0],
         endDateISOString: search.selectedDateRange[1],
         occupancy: stayOccupancy.reduce((acc, room) => acc + room.occupancy, 0),
         categoryIds: search.selectedRoomCategories,
-      } as IGetHotelAvailabilityRequest
+      } as IHotelRequest
 
       ).then(result => setSearchResultState({ error: null, status: 'succeeded', result: result })
       ).catch(error => setSearchResultState({ error: error.message, status: 'failed', result: null }))
@@ -124,28 +127,18 @@ export default function StaySearch() {
 
                 <Grid item xs={12}>
                   <Grid container spacing={2}>
-                    {searchResultState.status === 'idle' &&
-
-                      <Typography variant={'body1'}>Select dates and room categories to see available rooms</Typography>
-                    
+                    {searchResultState.status === 'idle' && 
+                      hotel.roomCategories.filter((roomCategory) => search.selectedRoomCategories.includes(roomCategory.id))
+                      .map((roomCategory) => (<RoomCategoryCard roomCategory={roomCategory} key={roomCategory.id}/>))
                     }
                     {searchResultState.status === 'loading' && <GlobalSpinner />}
-                    {searchResultState.status === 'failed' && <Typography variant={'body1'}>Failed to load rooms</Typography>}
+                    {searchResultState.status === 'failed' && <Typography variant={'body1'}>Failed to load rooms: {searchResultState.error}</Typography>}
                     {searchResultState.status === 'succeeded' &&
-                      [...hotel.RoomCategories].sort((a, b) => sortRoomCategoryResult(a, b, searchResultState.result))
-                        .filter(room => search.selectedRoomCategories.includes(room.Id)).map((roomCategory) => {
-                          return (
-                            <SearchResultCard
-                              description={roomCategory.Description["en-US"]}
-                              id={roomCategory.Id}
-                              imageUrls={roomCategory.ImageIds.map(imageId => `${hotel.ImageBaseUrl}/${imageId}`)}
-                              name={roomCategory.Name["en-US"]}
-                              availablity={getRoomAvailabilityFromResult(roomCategory.Id, searchResultState.result)}
-                            />
-                          )
-                        })
-
+                      searchResultState.result?.toSorted(sortRoomCategoryResult)
+                        .filter((roomCategory) => search.selectedRoomCategories.includes(roomCategory.id))
+                        .map((roomCategory) => (<RoomCategoryWithAvailabilityCard key={roomCategory.id} roomCategory={roomCategory} />))
                     }
+                    
                   </Grid>
                 </Grid>
               </Grid>
@@ -171,36 +164,22 @@ export default function StaySearch() {
     dispatch(setSelectedDateRange(dateRangeISOString))
   }
 
-  function getRoomAvailabilityFromResult(roomCategoryId: string, availabilityResult: IHotelAvailability | null) {
-    return availabilityResult?.RoomCategoryAvailabilities.find(roomCategoryAvailability => roomCategoryAvailability.RoomCategoryId === roomCategoryId)?.AvailableRoomCount?? 0
-  }
-
   /**
    * Sorts the result so that the room categories with available rooms are shown first and the rest are sorted by their ordering.
    * @param a RoomCategory
    * @param b RoomCategory
    * @returns 
    */
-  function sortRoomCategoryResult(a: RoomCategory, b: RoomCategory, availabilityResult: IHotelAvailability | null) {
-    if (availabilityResult === null) {
-      return 0
-    }
-    const aAvailableRoomCount = availabilityResult.RoomCategoryAvailabilities.find((roomCategoryAvailability) => {
-      return roomCategoryAvailability.RoomCategoryId === a.Id
-    })?.AvailableRoomCount ?? 0
+  function sortRoomCategoryResult(a: IRoomCategoryWithAvailability, b: IRoomCategoryWithAvailability) {
 
-    const bAvailableRoomCount = availabilityResult.RoomCategoryAvailabilities.find((roomCategoryAvailability) => {
-      return roomCategoryAvailability.RoomCategoryId === b.Id
-    })?.AvailableRoomCount ?? 0
-
-    if (aAvailableRoomCount === bAvailableRoomCount) {
+    if (a.availableRoomCount === b.availableRoomCount) {
       return 0;
-    } else if (aAvailableRoomCount === 0) {
+    } else if (a.availableRoomCount === 0) {
       return 1;
-    } else if (bAvailableRoomCount === 0) {
+    } else if (b.availableRoomCount === 0) {
       return -1;
     } else {
-      return a.Ordering - b.Ordering;
+      return a.sortOrder - b.sortOrder;
     }
   }
 }
