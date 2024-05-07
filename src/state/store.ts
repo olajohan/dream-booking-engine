@@ -3,11 +3,15 @@ import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistReducer } fro
 import hotelReducer from "./hotel/hotelSlice";
 import staySearchReducer from "./staySearch/staySearchSlice";
 import stayOccupancyReducer from "./stayOccupancy/stayOccupancySlice";
-import sessionStorage from 'redux-persist/lib/storage/session'
+import sessionStorage  from 'redux-persist/lib/storage/session'
+import settingsReducer from "./settings/settingsSlice";
+import reservationReducer from "./reservation/reservationSlice";
 
 
 
 const reducers = combineReducers({
+    reservations: reservationReducer,
+    settings: settingsReducer,
     hotelState: hotelReducer,
     stayOccupancy: stayOccupancyReducer,
     staySearch: staySearchReducer,
@@ -25,9 +29,9 @@ const store = configureStore({
     devTools: process.env.NODE_ENV !== 'production',
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
-            serializableCheck: {
-                ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-            },
+          serializableCheck: {
+            ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+          },
         }),
 })
 

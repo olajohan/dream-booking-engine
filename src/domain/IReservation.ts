@@ -1,11 +1,11 @@
 
 export interface IReservation {
-    roomCategoryId: string
-    startUtc: string
-    endUtc: string
-    voucherCode: string
-    rateId: string
-    adultCount: number
-    productIds: string[]
-    notes: string
+    roomCategoryId: string;
+    startUTC: string;
+    endUTC: string;
+    voucherCode: string | null;
+    rateId: string;
+    adultCount: number;
+    productIds: string[];
+    notes: string;
 }

@@ -1,7 +1,7 @@
-import { IRate } from "./IRate";
-import { IRoomCategory } from "./IRoomCategory";
+import { IApiRoomCategory } from "../api/IApiHotel";
+import { IRoomCategoryRate } from "./IRoomCategoryRate";
 
-export interface IRoomCategoryWithAvailability extends IRoomCategory {
+export interface IRoomCategoryWithAvailability extends IApiRoomCategory {
     availableRoomCount: number;
-    rates: IRate[]
+    rates: IRoomCategoryRate[]
 }

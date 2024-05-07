@@ -19,7 +19,6 @@ import { IStaySearch } from "../../state/staySearch/staySearchSlice";
 import { useSelector } from "react-redux";
 import { RootState } from "../../state/store";
 import { IApiHotel } from "../../api/IApiHotel";
-import { IHotel } from "../../domain/IHotel";
 
 dayjs.extend(utc);
 dayjs.extend(updateLocale)
@@ -109,7 +108,7 @@ export default function StaticBookingCalendar(props: IInputCalendarProps) {
     const [fullyBookedDates, setFullyBookedDates] = useState<Dayjs[]>([])
     const [maxDate, setMaxDate] = useState<Dayjs | null>(null)
     const [selectedMonth, setSelectedMonth] = useState(dayjs())
-    const hotel = useSelector<RootState>((state) => state.hotelState.hotel) as IHotel
+    const hotel = useSelector<RootState>((state) => state.hotelState.hotel) as IApiHotel
 
     useEffect(() => {
         setIsLoading(true)
@@ -244,7 +243,7 @@ export default function StaticBookingCalendar(props: IInputCalendarProps) {
 
             accommodationServiceAvailability.CategoryAvailabilities.forEach((category) => {
                 totalAvailability += category.Availabilities[index]
-                if (hotel.roomCategories.find(hotelCategory => hotelCategory.id === category.CategoryId && hotelCategory.maxOccupancy > 2)) {
+                if (hotel.RoomCategories.find(hotelCategory => hotelCategory.Id === category.CategoryId && hotelCategory.NormalBedCount > 2)) {
                     moreThanTwoBedAvailability += category.Availabilities[index]
                 }
             })

@@ -6,7 +6,7 @@ import Appbar from '../components/Appbar/Appbar';
 import GlobalSpinner from '../components/GlobalSpinner/GlobalSpinner';
 import PaperItem from '../components/PaperItem/PaperItem';
 import Stepper from '../components/Stepper/Stepper';
-import { fetchHotel, selectHotel } from '../state/hotel/hotelSlice';
+import { fetchHotel } from '../state/hotel/hotelSlice';
 import { AppDispatch, RootState } from '../state/store';
 
 

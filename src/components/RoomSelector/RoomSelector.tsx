@@ -1,12 +1,11 @@
-import { FormControl, InputLabel, Select, OutlinedInput, Box, Chip, MenuItem, SelectChangeEvent } from "@mui/material"
-import { IStaySearch, selectRoomCategory, selectStaySearch, setSelectedRoomCategories, unselectRoomCategory } from "../../state/staySearch/staySearchSlice"
-import { useDispatch, useSelector } from "react-redux"
-import { AppDispatch, RootState } from "../../state/store"
-import { IApiHotel } from "../../api/IApiHotel";
-import { IApiHotelAvailability } from "../../api/IApiHotelAvailability";
-import { IStayOccupancy } from "../../state/stayOccupancy/stayOccupancySlice";
+import { Box, Chip, FormControl, InputLabel, MenuItem, OutlinedInput, Select, SelectChangeEvent } from "@mui/material";
 import { useEffect } from "react";
-import { IHotel } from "../../domain/IHotel";
+import { useDispatch, useSelector } from "react-redux";
+import { IApiHotel } from "../../api/IApiHotel";
+import { IStayOccupancy } from "../../state/stayOccupancy/stayOccupancySlice";
+import { IStaySearch, selectStaySearch, setSelectedRoomCategories } from "../../state/staySearch/staySearchSlice";
+import { AppDispatch, RootState } from "../../state/store";
+
 
 
 const ROOM_CATEGORIES_IDS_TOTAL_NUMBER_OF_ROOMS_PER_ID: { [key: string]: number } = {
@@ -32,7 +31,7 @@ export default function RoomSelector() {
 
     const dispatch = useDispatch<AppDispatch>()
     const calendarState = useSelector<RootState>(state => selectStaySearch(state)) as IStaySearch
-    const hotel = useSelector<RootState>(state => state.hotelState.hotel) as IHotel
+    const hotel = useSelector<RootState>(state => state.hotelState.hotel) as IApiHotel
     const roomsOccupancy = useSelector<RootState>(state => state.stayOccupancy) as IStayOccupancy[]
 
     const handleChange = (event: SelectChangeEvent<typeof calendarState.selectedRoomCategories>) => {
@@ -45,7 +44,7 @@ export default function RoomSelector() {
 
     useEffect(() => {
 
-        const allCategories = hotel.roomCategories.map(roomCategory => roomCategory.id)
+        const allCategories = hotel.RoomCategories.map(roomCategory => roomCategory.Id)
         dispatch(setSelectedRoomCategories(allCategories))
     }, [roomsOccupancy])
 
@@ -69,15 +68,15 @@ export default function RoomSelector() {
                 MenuProps={MenuProps}
 
             >
-                {hotel.roomCategories.map((room) => {
-                    const disabled = shouldBeDisabled(room.maxOccupancy, room.id)
+                {hotel.RoomCategories.map((room) => {
+                    const disabled = shouldBeDisabled(room.NormalBedCount, room.Id)
                     return (
                         <MenuItem
-                            key={room.id}
-                            value={room.id}
+                            key={room.Id}
+                            value={room.Id}
                             disabled={disabled}
                         >
-                            {disabled? `${room.name}` : room.name}
+                            {disabled? `${room.Name['en-US']}` : room.Name['en-US']}
                         </MenuItem>
                     )
                 })}
@@ -86,7 +85,7 @@ export default function RoomSelector() {
     )
 
     function getRoomNameFromId(roomCategoryId: string) {
-        return hotel.roomCategories.find(roomCategory => roomCategory.id === roomCategoryId)?.name ?? ''
+        return hotel.RoomCategories.find(roomCategory => roomCategory.Id === roomCategoryId)?.Name['en-US'] ?? ''
     }
 
     function shouldBeDisabled(currentRoomMaxOccupancy: number, roomCategoryId: string): boolean {
@@ -98,9 +97,9 @@ export default function RoomSelector() {
 
     function getCurrentSelectedCategoriesTotalNumberOfRooms(): number {
         let totalNumberOfRooms = 0;
-        hotel.roomCategories.forEach((roomCategory) => {
-            if (calendarState.selectedRoomCategories.includes(roomCategory.id)) {
-                totalNumberOfRooms += getCategoryTotalNumberOfRooms(roomCategory.id)
+        hotel.RoomCategories.forEach((roomCategory) => {
+            if (calendarState.selectedRoomCategories.includes(roomCategory.Id)) {
+                totalNumberOfRooms += getCategoryTotalNumberOfRooms(roomCategory.Id)
             }
         })
         return totalNumberOfRooms
@@ -112,9 +111,9 @@ export default function RoomSelector() {
 
     function getCurrentSelectedCategoriesMaxOccupancy(): number {
         let maxOccupancy = 0;
-        hotel.roomCategories.forEach((roomCategory) => {
-            if (calendarState.selectedRoomCategories.includes(roomCategory.id)) {
-                maxOccupancy += roomCategory.maxOccupancy * ROOM_CATEGORIES_IDS_TOTAL_NUMBER_OF_ROOMS_PER_ID[roomCategory.id]
+        hotel.RoomCategories.forEach((roomCategory) => {
+            if (calendarState.selectedRoomCategories.includes(roomCategory.Id)) {
+                maxOccupancy += roomCategory.NormalBedCount * ROOM_CATEGORIES_IDS_TOTAL_NUMBER_OF_ROOMS_PER_ID[roomCategory.Id]
             }
         })
         return maxOccupancy
@@ -127,7 +126,7 @@ export default function RoomSelector() {
     function willBeToFewBeds(roomCategoryId: string): boolean {
         return getCurrentSelectedCategoriesMaxOccupancy() -
             ROOM_CATEGORIES_IDS_TOTAL_NUMBER_OF_ROOMS_PER_ID[roomCategoryId] *
-            (hotel?.roomCategories.find((roomCategory) => roomCategory.id === roomCategoryId)?.maxOccupancy ?? 1) <
+            (hotel?.RoomCategories.find((roomCategory) => roomCategory.Id === roomCategoryId)?.NormalBedCount ?? 1) <
             roomsOccupancy.reduce((acc, roomOccupancy) => acc + roomOccupancy.occupancy, 0)
 
     }

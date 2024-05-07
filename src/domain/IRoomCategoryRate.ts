@@ -1,5 +1,5 @@
 
-export interface IRate {
+export interface IRoomCategoryRate {
     id: string
     sortOrder: number
     name: string

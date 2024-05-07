@@ -1,70 +1,37 @@
-import { IHotel } from "../domain/IHotel";
 import { IOccupancyPricing } from "../domain/IOccupancyPrice";
-import { IProduct } from "../domain/IProduct";
-import { IRate } from "../domain/IRate";
-import { IRoomCategory } from "../domain/IRoomCategory";
+import { IRoomCategoryRate } from "../domain/IRoomCategoryRate";
 import { IRoomCategoryWithAvailability } from "../domain/IRoomCategoryWithAvailability";
 import { IApiHotel, IApiProduct, IApiRoomCategory } from "./IApiHotel";
-import { IApiHotelAvailability, RateGroup } from "./IApiHotelAvailability";
+import { IApiHotelAvailability, IApiRateGroup } from "./IApiHotelAvailability";
 import { IApiOccupancyPricing } from "./IApiOccupancyPricing";
 
 
-export function mapApiHoteltoDomainHotel(apiHotel: IApiHotel): IHotel {
-    return {
-        name: apiHotel.Name["en-US"],
-        description: apiHotel.Description["en-US"],
-        address: apiHotel.Address.Line1,
-        city: apiHotel.Address.City,
-        zip: apiHotel.Address.PostalCode,
-        phone: apiHotel.Telephone,
-        email: apiHotel.Email,
-        imageBaseUrl: apiHotel.ImageBaseUrl,
-        roomCategories: mapApiRoomCategoryToDomainRoomCategory(apiHotel.RoomCategories, apiHotel),
-        products: mapApiProductsToDomainProducts(apiHotel.Products, apiHotel),
-        TermsAndConditionsUrl: apiHotel.TermsAndConditionsUrl
-    }
+export function mapApiHoteltoDomainHotel(apiHotel: IApiHotel): IApiHotel {
+    return { ...apiHotel }
 }
 
-export function mapApiRoomCategoryToDomainRoomCategory(apiRoomCategory: IApiRoomCategory[], apiHotel: IApiHotel): IRoomCategory[] {
-    return apiHotel.RoomCategories.map(apiRoomCategory => {
-        return {
-            id: apiRoomCategory.Id,
-            name: apiRoomCategory.Name["en-US"],
-            description: apiRoomCategory.Description["en-US"],
-            imageUrls: apiRoomCategory.ImageIds.map(imageId => `${apiHotel.ImageBaseUrl}/${imageId}`),
-            maxOccupancy: apiRoomCategory.NormalBedCount,
-            sortOrder: apiRoomCategory.Ordering
-        }
-    })
+export function mapApiRoomCategoryToDomainRoomCategory(apiRoomCategory: IApiRoomCategory[], apiHotel: IApiHotel): IApiRoomCategory[] {
+    return { ...apiRoomCategory }
 }
 
-export function mapApiProductsToDomainProducts(apiProducts: IApiProduct[], apiHotel: IApiHotel): IProduct[] {
-    return apiProducts.map(apiProduct => {
-        return {
-            id: apiProduct.Id,
-            name: apiProduct.Name["en-US"],
-            description: apiProduct.Description["en-US"],
-            categoryId: apiProduct.CategoryId,
-            imageUrl: `${apiHotel.ImageBaseUrl}/${apiProduct.ImageId}` ?? null,
-            includedByDefault: apiProduct.IncludedByDefault,
-            alwaysIncluded: apiProduct.AlwaysIncluded,
-            price: apiProduct.Prices.NOK
-        }
-    })
+export function mapApiProductsToDomainProducts(apiProducts: IApiProduct[], apiHotel: IApiHotel): IApiProduct[] {
+    return { 
+        ...apiProducts
+     }
 }
 
-export function mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability(apiHotelAvailability: IApiHotelAvailability, domainRoomCategories: IRoomCategory[]): IRoomCategoryWithAvailability[] {
+export function mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability(apiHotelAvailability: IApiHotelAvailability, domainRoomCategories: IApiRoomCategory[], languageCode: string, currencyCode: string): IRoomCategoryWithAvailability[] {
 
     return domainRoomCategories.map(domainRoomCategory => {
 
         return {
             ...domainRoomCategory,
-            availableRoomCount: apiHotelAvailability.RoomCategoryAvailabilities.find(apiRoomCategoryAvailability => apiRoomCategoryAvailability.RoomCategoryId === domainRoomCategory.id)?.AvailableRoomCount?? 0,
-            rates: getRoomCategoryDomainRateGroups(domainRoomCategory.id, apiHotelAvailability).flat()
+            availableRoomCount: apiHotelAvailability.RoomCategoryAvailabilities.find(apiRoomCategoryAvailability => apiRoomCategoryAvailability.RoomCategoryId === domainRoomCategory.Id)?.AvailableRoomCount?? 0,
+            rates: getRoomCategoryDomainRateGroups(domainRoomCategory.Id, apiHotelAvailability).flat()
         }
     })
 
-    function getRoomCategoryDomainRateGroups(roomCategoryId: string, apiHotelAvailability: IApiHotelAvailability): IRate[] {
+    function getRoomCategoryDomainRateGroups(roomCategoryId: string, apiHotelAvailability: IApiHotelAvailability): IRoomCategoryRate[] {
 
         return apiHotelAvailability.Rates.flatMap(apiRate => {
 
@@ -81,12 +48,12 @@ export function mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability(apiH
                     return {
                         id: apiRate.Id,
                         sortOrder: apiRate.Ordering,
-                        name: apiRate.Name["en-US"],
+                        name: apiRate.Name[languageCode],
                         numberOfAdults: apiRoomOccupancyAvailability.AdultCount,
-                        description: apiRate.Description["en-US"],
+                        description: apiRate.Description[languageCode],
                         isPrivate: apiRate.IsPrivate,
-                        pricePerNight: apiRoomOccupancyAvailability.Pricing.find(apiPricing => apiPricing.RateId === apiRate.Id)?.Price.AveragePerNight,
-                        totalPrice: apiRoomOccupancyAvailability.Pricing.find(apiPricing => apiPricing.RateId === apiRate.Id)?.Price.Total
+                        pricePerNight: apiRoomOccupancyAvailability.Pricing.find(apiPricing => apiPricing.RateId === apiRate.Id)?.Price.AveragePerNight[currencyCode],
+                        totalPrice: apiRoomOccupancyAvailability.Pricing.find(apiPricing => apiPricing.RateId === apiRate.Id)?.Price.Total[currencyCode]
                     }
                 })?? []
         })
@@ -94,7 +61,7 @@ export function mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability(apiH
     }
 }
 
-export function mapApiOccupancyPricingToDomainOccupancyPrice(apiOccupancyPricing: IApiOccupancyPricing, rateId: string): IOccupancyPricing {
+export function mapApiOccupancyPricingToDomainOccupancyPrice(apiOccupancyPricing: IApiOccupancyPricing, rateId: string, currencyCode: string): IOccupancyPricing {
     
         const occpupancyPrice = apiOccupancyPricing.OccupancyPrices
             .find(apiOccupancyPrice => apiOccupancyPrice.Pricing
@@ -105,8 +72,8 @@ export function mapApiOccupancyPricingToDomainOccupancyPrice(apiOccupancyPricing
         }
 
         const pricing = occpupancyPrice?.Pricing.find(apiPricing => apiPricing.RateId === rateId)
-        const averagePricePerNight = pricing?.Price.AveragePerNight.NOK
-        const totalPrice = pricing?.Price.Total.NOK
+        const averagePricePerNight = pricing?.Price.AveragePerNight[currencyCode]
+        const totalPrice = pricing?.Price.Total[currencyCode]
         const numberOfPersons = occpupancyPrice?.AdultCount
 
         return {

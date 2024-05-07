@@ -1,10 +1,9 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { getHotel } from "../../api/mewsApi";
 import { IApiHotel } from "../../api/IApiHotel";
-import { IHotel } from "../../domain/IHotel";
 
 interface IHotelState {
-    hotel: IHotel | null;
+    hotel: IApiHotel | null;
     status: 'idle' | 'loading' | 'succeeded' | 'failed';
     error: string | null;
 }

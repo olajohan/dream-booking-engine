@@ -1,12 +1,8 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { IHotel } from '../domain/IHotel';
 import { IApiHotel } from './IApiHotel';
-import { IApiHotelAvailability } from './IApiHotelAvailability';
 import { IApiServiceAvailability } from './IApiServiceAvailability';
 import { mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability, mapApiHoteltoDomainHotel, mapApiOccupancyPricingToDomainOccupancyPrice } from './mapper';
-import { IRoomCategory } from '../domain/IRoomCategory';
-import { IRoomCategoryWithAvailability } from '../domain/IRoomCategoryWithAvailability';
 dayjs.extend(utc)
 
 const ENVIRONMENT: 'demo' | 'production' = 'production'
@@ -64,21 +60,22 @@ const mews = {
     }
 }
 
-export interface IGeneralApiRequest {
+interface IGeneralApiRequest {
     startDateISOString: string;
     endDateISOString: string;
     categoryIds: string[];
 }
 
-export interface IHotelRequest extends IGeneralApiRequest {
+export interface IApiRequestWithPrice extends IGeneralApiRequest {
+    currencyCode: string;
     occupancy: number;
 }
 
-export interface IGetRateOccupancyPricingRequest extends IHotelRequest {
-    rateId: string;
+export interface IApiRequestWithPriceAndLanguage extends IApiRequestWithPrice {
+    languageCode: string;
 }
 
-export function getHotel(): Promise<IHotel> {
+export function getHotel(): Promise<IApiHotel> {
 
     return fetch(
         mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/hotels/get', {
@@ -97,10 +94,10 @@ export function getHotel(): Promise<IHotel> {
 
 
 export function getRoomCategoriesAvailability(
-    getHotelAvailabilityRequest: IHotelRequest
+    getHotelAvailabilityRequest: IApiRequestWithPriceAndLanguage
 ) {
 
-    const { startDateISOString, endDateISOString, occupancy, categoryIds } = getHotelAvailabilityRequest
+    const { startDateISOString, currencyCode, languageCode, endDateISOString, occupancy, categoryIds } = getHotelAvailabilityRequest
 
     return fetch(
         mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/hotels/getAvailability', {
@@ -112,6 +109,8 @@ export function getRoomCategoriesAvailability(
             "StartUtc": dayjs(startDateISOString).startOf('day').toISOString(),
             "EndUtc": dayjs(endDateISOString).startOf('day').toISOString(),
             "CategoryIds": categoryIds,
+            "CurrencyCode": currencyCode,
+            "LanguageCode": languageCode,
             "OccupancyData": [
                 {
                     "AgeCategoryId": mews.ageCatoryIds[ENVIRONMENT],
@@ -127,7 +126,12 @@ export function getRoomCategoriesAvailability(
     ).then(response => response.json())
         .then(async (apiHotelAvailability) => {
             const hotel = await getHotel()
-            return mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability(apiHotelAvailability, hotel.roomCategories)
+            return mapApiHotelAvailabilityToDomainRoomCategoryWithAvailability(
+                apiHotelAvailability, 
+                hotel.RoomCategories,
+                languageCode,
+                currencyCode
+            )
         }).catch(error => {
             throw new Error("Failed to get room category availability from Mews API.")
         })
@@ -167,7 +171,7 @@ function getServiceAvailability(
     })
 }
 
-export function getPricing(getRateOccupancyPricingRequest: IGetRateOccupancyPricingRequest) {
+export function getPricing(getRateOccupancyPricingRequest: IApiRequestWithPrice, rateId: string) {
 
     return fetch(mews.apiEnvironments[ENVIRONMENT] + '/api/distributor/v1/reservations/getPricing', {
         method: "POST",
@@ -177,6 +181,8 @@ export function getPricing(getRateOccupancyPricingRequest: IGetRateOccupancyPric
             "StartUtc": dayjs(getRateOccupancyPricingRequest.startDateISOString).startOf('day').toISOString(),
             "EndUtc": dayjs(getRateOccupancyPricingRequest.endDateISOString).startOf('day').toISOString(),
             "RoomCategoryId": getRateOccupancyPricingRequest.categoryIds.join(),
+            "CurrencyCode": getRateOccupancyPricingRequest.currencyCode,
+            
             "Occupancies": [
                 {
                     "OccupancyData": [
@@ -195,5 +201,5 @@ export function getPricing(getRateOccupancyPricingRequest: IGetRateOccupancyPric
         })
     })
         .then(response => response.json())
-        .then((pricing) => mapApiOccupancyPricingToDomainOccupancyPrice(pricing, getRateOccupancyPricingRequest.rateId))
+        .then((pricing) => mapApiOccupancyPricingToDomainOccupancyPrice(pricing, rateId, getRateOccupancyPricingRequest.currencyCode))
 }

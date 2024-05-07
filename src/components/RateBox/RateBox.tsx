@@ -1,34 +1,44 @@
-import { Grid, Divider, Typography, IconButton, Button, CircularProgress, LinearProgress } from "@mui/material";
-import { IRate } from "../../domain/IRate";
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import { Button, CircularProgress, Divider, Grid, IconButton, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { getPricing } from "../../api/mewsApi";
-import { RootState } from "../../state/store";
-import { useSelector } from "react-redux";
+import { IRoomCategoryRate } from "../../domain/IRoomCategoryRate";
 import { IStaySearch, selectStaySearch } from "../../state/staySearch/staySearchSlice";
-import dayjs from "dayjs";
+import { AppDispatch, RootState } from "../../state/store";
+import { ISettings, selectSettings } from '../../state/settings/settingsSlice';
+import { IReservation } from '../../domain/IReservation';
+import { addReservation, removeReservation } from '../../state/reservation/reservationSlice';
+import { IStayOccupancy } from '../../state/stayOccupancy/stayOccupancySlice';
 
 
 export interface IRateBoxProps {
-    rate: IRate;
+    rate: IRoomCategoryRate;
     index: number;
     roomCategoryMaxAdults: number;
     roomCategoryId: string;
+    availableRoomCount: number;
+    adults: number;
+    handleAddReservation: (reservation: IReservation) => void;
 }
 
-export default function RateBox({ rate, index = 0, roomCategoryMaxAdults, roomCategoryId }: IRateBoxProps) {
+export default function RateBox({ rate, index = 0, roomCategoryMaxAdults, availableRoomCount, roomCategoryId, adults, handleAddReservation }: IRateBoxProps) {
 
-    const [adults, setAdults] = useState(rate.numberOfAdults)
-    const [pricePerNight, setPricePerNight] = useState(rate.pricePerNight.NOK)
+    const settings = useSelector<RootState>(state => selectSettings(state)) as ISettings
+    const [pricePerNight, setPricePerNight] = useState(rate.pricePerNight[settings.currencyCode])
     const [priceIsLoading, setPriceIsLoading] = useState(false)
     const search = useSelector<RootState>(state => selectStaySearch(state)) as IStaySearch
+    const stayOccupancy = useSelector<RootState>(state => state.stayOccupancy) as IStayOccupancy[]
+    const reservations = useSelector<RootState>(state => state.reservations) as IReservation[]
+
+    const FORMATTER = Intl.NumberFormat((settings.languageCode), { style: 'currency', currency: settings.currencyCode })
 
     useEffect(() => {
 
         setPriceIsLoading(true)
 
-        if (search.selectedDateRange[0] === null || search.selectedDateRange[1] === null) { 
+        if (search.selectedDateRange[0] === null || search.selectedDateRange[1] === null) {
             throw new Error('Date range is not set when trying to get pricing for rate box')
         }
 
@@ -37,15 +47,16 @@ export default function RateBox({ rate, index = 0, roomCategoryMaxAdults, roomCa
             endDateISOString: search.selectedDateRange[1],
             categoryIds: [roomCategoryId],
             occupancy: adults,
-            rateId: rate.id
-        }).then(pricing => {
+            currencyCode: settings.currencyCode,
+        }, rate.id
+        ).then(pricing => {
             setPricePerNight(pricing.averagePricePerNight)
         }).catch(error => {
             console.log(error)
         }).finally(() => {
             setPriceIsLoading(false)
         })
-    }, [adults])
+    }, [adults, settings.currencyCode])
 
     return (
         <Grid container spacing={2} key={rate.id} marginBottom={2} direction="row" alignItems="center" justifyContent="center">
@@ -67,13 +78,7 @@ export default function RateBox({ rate, index = 0, roomCategoryMaxAdults, roomCa
                         <Typography variant={'h6'}>Adults</Typography>
                     </Grid>
                     <Grid item xs={12} minHeight={40}>
-                        <IconButton size="small" color="secondary" onClick={handleRemovePerson} disabled={shouldDisableRemoveButton()}>
-                            <RemoveIcon />
-                        </IconButton>
                         <Typography display={'inline'} variant={'body1'}> {adults} </Typography>
-                        <IconButton size="small" color="primary" onClick={handleAddPerson} disabled={shouldDisableAddButton()}>
-                            <AddIcon />
-                        </IconButton>
                     </Grid>
                 </Grid>
             </Grid>
@@ -84,34 +89,29 @@ export default function RateBox({ rate, index = 0, roomCategoryMaxAdults, roomCa
                     </Grid>
                     <Grid item xs={12} minHeight={40}>
                         {priceIsLoading && <CircularProgress size={20} />}
-                        {!priceIsLoading && <Typography variant={'body1'}>{pricePerNight} NOK per night</Typography>}
+                        {!priceIsLoading && <Typography variant={'body1'}>{FORMATTER.format(pricePerNight)} per night</Typography>}
                     </Grid>
                 </Grid>
             </Grid>
             <Grid item xs={6} md={3}>
                 <Grid container>
                     <Grid item xs={12}>
-                        <Button variant={'contained'}>Reserve</Button>
+                        <Button 
+                            variant={'contained'}
+                            onClick={() => handleAddReservation({
+                                roomCategoryId: roomCategoryId,
+                                startUTC: search.selectedDateRange[0] as string,
+                                endUTC: search.selectedDateRange[1] as string,
+                                voucherCode: '',
+                                rateId: rate.id,
+                                adultCount: adults,
+                                productIds: [],
+                                notes: ''
+                            })}
+                        >Reserve</Button>
                     </Grid>
                 </Grid>
             </Grid>
-        </Grid>
+        </Grid >
     )
-
-    function handleAddPerson() {
-
-        setAdults(adults + 1)
-    }
-
-    function handleRemovePerson() {
-        setAdults(adults - 1)
-    }
-
-    function shouldDisableRemoveButton() {
-        return adults === 1
-    }
-
-    function shouldDisableAddButton() {
-        return adults >= roomCategoryMaxAdults
-    }
 }

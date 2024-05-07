@@ -1,11 +1,11 @@
 export interface IApiHotelAvailability {
-  RateGroups: RateGroup[]
-  Rates: Rate[]
-  RoomCategoryAvailabilities: RoomCategoryAvailability[]
+  RateGroups: IApiRateGroup[]
+  Rates: IApiRate[]
+  RoomCategoryAvailabilities: IApiRoomCategoryAvailability[]
   ViolatedRestrictions: any
 }
 
-export interface RateGroup {
+export interface IApiRateGroup {
   Id: string
   Ordering: number
   SettlementType: string
@@ -19,53 +19,109 @@ export interface RateGroup {
   SettlementCurrencyCode: string
 }
 
-export interface Rate {
+export interface IApiRate {
   Id: string
   RateGroupId: string
   Ordering: number
-  Name: Name
-  Description: Description
+  Name: IApiName
+  Description: IApiDescription
   IsPrivate: boolean
   CurrencyCode: string
 }
 
-export interface Name {
-  "en-US": string
+export interface IApiName {
+  [language: string]: string
 }
 
-export interface Description {
-  "en-US": string
+export interface IApiDescription {
+  [language: string]: string
 }
 
-export interface RoomCategoryAvailability {
+export interface IApiRoomCategoryAvailability {
   RoomCategoryId: string
   AvailableRoomCount: number
-  RoomOccupancyAvailabilities: RoomOccupancyAvailability[]
+  RoomOccupancyAvailabilities: IApiRoomOccupancyAvailability[]
 }
 
-export interface RoomOccupancyAvailability {
-  Pricing: Pricing[]
+export interface IApiRoomOccupancyAvailability {
+  Pricing: IApiPricing[]
   AdultCount: number
   ChildCount: number
-  OccupancyData: OccupancyData[]
+  OccupancyData: IApiOccupancyData[]
 }
 
-export interface Pricing {
+export interface IApiPricing {
   RateId: string
-  Price: Price
-  MaxPrice: any
+  Price: IApiPrice
+  MaxPrice: MaxPrice
 }
 
-export interface Price {
-  Total: any
-  TotalAmount: any
-  AveragePerNight: any
-  AveragePerTimeUnit: any
-  AverageAmountPerNight: any
-  AverageAmountPerTimeUnit: any
+export interface IApiPrice {
+  Total: IApiTotal
+  TotalAmount: IApiTotalAmount
+  AveragePerNight: IApiAveragePerNight
+  AveragePerTimeUnit: IApiAveragePerTimeUnit
+  AverageAmountPerNight: IApiAverageAmountPerNight
+  AverageAmountPerTimeUnit: IApiAverageAmountPerTimeUnit
 }
 
-export interface OccupancyData {
-  AgeCategoryId: string;
-  PersonCount: number;
+export interface IApiTotal {
+  [currencyCode: string]: number
+}
+
+export interface IApiTotalAmount {
+  [currencyCode: string]: IApiPriceData
+}
+
+export interface IApiPriceData {
+  Currency: string
+  GrossValue: number
+  NetValue: number
+  TaxValues: IApiTaxValue[]
+  Breakdown: IApiBreakdown
+}
+
+export interface IApiTaxValue {
+  TaxRateCode: string
+  Value: number
+}
+
+export interface IApiBreakdown {
+  Items: IApiItem[]
+}
+
+export interface IApiItem {
+  TaxRateCode: string
+  NetValue: number
+  TaxValue: number
+}
+
+export interface IApiAveragePerNight {
+  [currencyCode: string]: number
+}
+
+export interface IApiAveragePerTimeUnit {
+  [currencyCode: string]: number
+}
+
+export interface IApiAverageAmountPerNight {
+  [currencyCode: string]: IApiPriceData
+}
+
+export interface IApiAverageAmountPerTimeUnit {
+  [currencyCode: string]: IApiPriceData
+}
+
+export interface MaxPrice {
+  Total: IApiTotal
+  TotalAmount: IApiTotalAmount
+  AveragePerNight: IApiAveragePerNight
+  AveragePerTimeUnit: IApiAveragePerTimeUnit
+  AverageAmountPerNight: IApiAverageAmountPerNight
+  AverageAmountPerTimeUnit: IApiAverageAmountPerTimeUnit
+}
+
+export interface IApiOccupancyData {
+  AgeCategoryId: string
+  PersonCount: number
 }
