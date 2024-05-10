@@ -18,7 +18,7 @@ const reservationSlice = createSlice({
         },
         clearAllReservations(state) {
             return []
-        }
+        },
     }
 });
 

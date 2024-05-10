@@ -1,4 +1,4 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, Typography } from "@mui/material"
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, Snackbar, Typography } from "@mui/material"
 import { DateRange } from "@mui/x-date-pickers-pro"
 import dayjs, { Dayjs } from "dayjs"
 import { useEffect, useRef, useState } from "react"
@@ -21,6 +21,7 @@ import { IStayOccupancy, selectRoomsOccupancy } from "../../state/stayOccupancy/
 import { IStaySearch, clearSelectedDateRange, selectStaySearch, setSelectedDateRange } from "../../state/staySearch/staySearchSlice"
 import { AppDispatch, RootState } from "../../state/store"
 import "./imageGallery.css"
+import { useNavigate } from "react-router"
 
 interface IStaySearchResultState {
   status: 'idle' | 'loading' | 'succeeded' | 'failed',
@@ -49,14 +50,22 @@ export default function StaySearch() {
   const [isResetRoomOccupancyDialogOpen, setIsResetRoomOccupancyDialogOpen] = useState(false)
 
   const roomRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
 
   const executeScrollToRooms = () => {
     if (roomRef && roomRef.current) {
-      roomRef.current.scrollIntoView({ behavior: 'smooth', block: 'start'})
+      roomRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
-  
+  useEffect(() => {
+
+    if (reservations.length === stayOccupancy.length) {
+      //navigate('/stay/meals')
+    }
+  }, [reservations])
+
+
   useEffect(() => {
     if (search.selectedDateRange[0] !== null && search.selectedDateRange[1] === null) {
       resetSearchAndReservations()
@@ -64,22 +73,28 @@ export default function StaySearch() {
   }, [search.selectedRoomCategories])
 
   useEffect(() => {
-    if (search.selectedDateRange[0] !== null && search.selectedDateRange[1] !== null) {
+    if (search.selectedDateRange[0] !== null &&
+      search.selectedDateRange[1] !== null
+    ) {
 
-      setSearchResultState({ error: null, status: 'loading', result: null })
-      getRoomCategoriesAvailability({
-        startDateISOString: search.selectedDateRange[0],
-        endDateISOString: search.selectedDateRange[1],
-        occupancy: stayOccupancy[reservations.length].occupancy,
-        categoryIds: search.selectedRoomCategories,
-        currencyCode: settings.currencyCode,
-        languageCode: settings.languageCode
-      }
+      if (reservations.length !== stayOccupancy.length) {
 
-      ).then((result) => { 
-        setSearchResultState({ error: null, status: 'succeeded', result: result }) 
+        setSearchResultState({ error: null, status: 'loading', result: null })
+        getRoomCategoriesAvailability({
+          startDateISOString: search.selectedDateRange[0],
+          endDateISOString: search.selectedDateRange[1],
+          occupancy: stayOccupancy[reservations.length].occupancy,
+          categoryIds: search.selectedRoomCategories,
+          currencyCode: settings.currencyCode,
+          languageCode: settings.languageCode
+        }
+
+        ).then((result) => {
+          setSearchResultState({ error: null, status: 'succeeded', result: result })
+        }
+        ).catch(error => setSearchResultState({ error: error.message, status: 'failed', result: null }))
+
       }
-      ).catch(error => setSearchResultState({ error: error.message, status: 'failed', result: null }))
 
     } else {
       setSearchResultState(InitialSearchResultState)
@@ -139,14 +154,20 @@ export default function StaySearch() {
                 </Grid>
                 <Grid container spacing={2} marginTop={2} marginBottom={2}>
                   <Grid item xs={12} ref={roomRef}>
-                    {searchResultState.status === 'succeeded' &&
+                    {searchResultState.status === 'succeeded' && stayOccupancy.length > reservations.length &&
                       <>
                         <Typography variant={'h2'}>Room {reservations.length + 1} of {stayOccupancy.length}</Typography>
-                        <Typography variant={'body1'}>Only showing rooms that can accommodate {stayOccupancy[reservations.length].occupancy} {stayOccupancy[reservations.length].occupancy === 1? 'adult' : 'adults'}</Typography>
+
                       </>
                     }
                     {searchResultState.status === 'idle' &&
                       <Typography variant={'h2'}>Rooms</Typography>
+                    }
+
+                    {stayOccupancy.length === reservations.length &&
+                      <>
+                        <Typography variant={'h2'}>All rooms selected!</Typography>
+                      </>
                     }
 
                   </Grid>
@@ -160,10 +181,10 @@ export default function StaySearch() {
                     }
                     {searchResultState.status === 'loading' && <GlobalSpinner />}
                     {searchResultState.status === 'failed' && <Typography variant={'body1'}>Failed to load rooms: {searchResultState.error}</Typography>}
-                    {searchResultState.status === 'succeeded' &&
+                    {searchResultState.status === 'succeeded' && stayOccupancy.length > reservations.length &&
                       searchResultState.result?.toSorted(sortRoomCategoryResult)
                         .filter((roomCategory) => {
-                          return search.selectedRoomCategories.includes(roomCategory.Id) && roomCategory.NormalBedCount >= stayOccupancy[reservations.length].occupancy
+                          return search.selectedRoomCategories.includes(roomCategory.Id)
                         })
                         .map((roomCategory) => (<RoomCategoryWithAvailabilityCard key={roomCategory.Id} adults={stayOccupancy[reservations.length].occupancy} roomCategory={roomCategory} handleAddReservation={handleAddReservation} />))
                     }
@@ -227,7 +248,7 @@ export default function StaySearch() {
   }
 
   function handleAddReservation(roomReservation: IReservation) {
-    
+
     if (reservations.length < stayOccupancy.length) {
       dispatch(addReservation(roomReservation))
       executeScrollToRooms()

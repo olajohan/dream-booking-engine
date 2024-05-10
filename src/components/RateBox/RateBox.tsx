@@ -1,16 +1,13 @@
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
-import { Button, CircularProgress, Divider, Grid, IconButton, Typography } from "@mui/material";
+import { Button, CircularProgress, Divider, Grid, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { getPricing } from "../../api/mewsApi";
-import { IRoomCategoryRate } from "../../domain/IRoomCategoryRate";
-import { IStaySearch, selectStaySearch } from "../../state/staySearch/staySearchSlice";
-import { AppDispatch, RootState } from "../../state/store";
-import { ISettings, selectSettings } from '../../state/settings/settingsSlice';
 import { IReservation } from '../../domain/IReservation';
-import { addReservation, removeReservation } from '../../state/reservation/reservationSlice';
+import { IRoomCategoryRate } from "../../domain/IRoomCategoryRate";
+import { ISettings, selectSettings } from '../../state/settings/settingsSlice';
 import { IStayOccupancy } from '../../state/stayOccupancy/stayOccupancySlice';
+import { IStaySearch, selectStaySearch } from "../../state/staySearch/staySearchSlice";
+import { RootState } from "../../state/store";
 
 
 export interface IRateBoxProps {

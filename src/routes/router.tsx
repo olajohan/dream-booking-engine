@@ -1,8 +1,9 @@
 import { createBrowserRouter } from "react-router-dom";
 import ErrorPage from "./ErrorPage/ErrorPage";
-import Root from "./Root";
+import Root from "./root";
 import Welcome from "./Welcome/Welcome";
 import StaySearch from "./Stay/StaySearch";
+import StayMeals from "./Stay/StayMeals";
 
 export const router = createBrowserRouter([
     {
@@ -18,6 +19,10 @@ export const router = createBrowserRouter([
           path: 'stay/search',
           element: <StaySearch />
         },
+        {
+          path: 'stay/meals',
+          element: <StayMeals />
+        }
       ]
     }
   ]);

@@ -100,12 +100,24 @@ export default function RoomCategoryWithAvailabilityCard(props: IRoomCategoryWit
                             <Grid container spacing={2} marginBottom={2}>
                                 <Grid item xs={12}>
                                     <Typography variant={'h4'}>You have selected all available rooms of this type</Typography>
-                                    <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} variant="contained" color="warning">Change dates</Button>
                                 </Grid>
 
                             </Grid>
                         </Grid>
                     </Grid>
+                }
+
+                {roomCategory.NormalBedCount < adults &&
+                    <Grid container spacing={2} marginTop={2}>
+                        <Grid item xs={12}>
+                            <Grid container spacing={2} marginBottom={2}>
+                                <Grid item xs={12}>
+                                    <Typography variant={'h4'}>Not enough beds for selected number of adults</Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
                 }
             </PaperItem>
         </Grid>
